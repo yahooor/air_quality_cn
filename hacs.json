@@ -1,7 +1,1 @@
-{
-  "name": "在意空气 (Air Quality CN)",
-  "content_in_root": false,
-  "filename": "",
-  "homeassistant": "2024.1.0",
-  "render_partial": "ha-extra-state"
-}
+{"name": "Air Quality CN", "content_in_root": false, "filename": "", "homeassistant": "2024.1.0", "render_partial": "ha-extra-state"}
