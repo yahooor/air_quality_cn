@@ -1,5 +1,7 @@
 # 在意空气 (Air Quality CN)
 
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+
 Home Assistant 集成，通过抓取 [air-quality.com](https://air-quality.com) 网页获取空气质量数据。
 
 ## 功能
@@ -12,44 +14,25 @@ Home Assistant 集成，通过抓取 [air-quality.com](https://air-quality.com) 
 
 ## 安装
 
-### 方法一：HACS（推荐）
-
+### HACS（推荐）
 1. 安装 [HACS](https://hacs.xyz/)
-2. 在 HACS 中搜索「在意空气」或「Air Quality CN」
-3. 点击安装
+2. 进入 HACS → 集成 → ... → 添加自定义仓库
+3. 填入：`https://github.com/yahooor/air_quality_cn`
+4. 搜索并安装「在意空气」
 
-### 方法二：手动安装
-
-1. 下载 `air_quality_cn.zip`
+### 手动安装
+1. 下载 release 中的 `air_quality_cn.zip`
 2. 解压到 `custom_components/air_quality_cn/`
 3. 重启 Home Assistant
 
 ## 配置
 
-1. 进入 Home Assistant → 设置 → 设备与服务
+1. Home Assistant → 设置 → 设备与服务
 2. 点击「添加集成」
 3. 搜索「在意空气」或「Air Quality CN」
 4. 按提示填写地点和 AQI 标准
 
-## AQI 标准说明
-
-| 标准 | 说明 |
-|------|------|
-| aqi_cn | 中国标准（GB 3096-2012）|
-| aqi_us | 美国标准（EPA）|
-| aqi_au | 澳大利亚标准 |
-
-## 支持的城市
-
-全球 100+ 城市，包括：
-- 中国：北京、上海、广州、深圳、成都、杭州、武汉、西安等
-- 亚太：东京、首尔、曼谷、新加坡、悉尼、墨尔本
-- 欧洲：伦敦、巴黎、柏林、罗马、马德里、阿姆斯特丹
-- 美洲：纽约、洛杉矶、旧金山、温哥华
-
 ## 调试
-
-查看 Home Assistant 日志：
 
 ```yaml
 logger:
@@ -57,6 +40,16 @@ logger:
   logs:
     custom_components.air_quality_cn: debug
 ```
+
+## 支持的城市
+
+中国：北京、上海、广州、深圳、成都、杭州、武汉、西安、南京、重庆、天津、苏州等
+
+亚太：东京、首尔、曼谷、新加坡、悉尼、墨尔本、台北、香港、澳门、雅加达、吉隆坡
+
+欧洲：伦敦、巴黎、柏林、罗马、马德里、阿姆斯特丹、维也纳、布拉格、华沙、莫斯科、斯德哥尔摩
+
+美洲：纽约、洛杉矶、旧金山、温哥华、多伦多、墨西哥城、圣保罗
 
 ## 许可证
 
