@@ -19,18 +19,3 @@ STANDARDS = {
     "daqi_uk": "AQI (英国标准)",
     "naqi_in": "AQI (印度标准)",
 }
-
-# Pollutant sensors (always shown when data available)
-POLLUTANT_SENSORS = ["PM2.5", "PM10", "O3", "NO2", "CO", "SO2"]
-
-# Pollen / Allergy sensors (shown when data available, seasonal)
-POLLEN_SENSORS = {
-    "pollen_birch": ("桦木花粉", "mdi:flower-pollen-outline"),
-    "pollen_grass": ("草花粉", "mdi:grass"),
-    "pollen_alder": ("桤木花粉", "mdi:flower"),
-    "pollen_olive": ("橄榄树花粉", "mdi:tree"),
-    "pollen_ragweed": ("豚草花粉", "mdi:weed"),
-    "pollen_mugwort": ("蒿花粉", "mdi:flower-tulip"),
-    "pollen_total": ("花粉总量", "mdi:flower-pollen"),
-    "allergy_risk": ("过敏风险指数", "mdi:allergy"),
-}
