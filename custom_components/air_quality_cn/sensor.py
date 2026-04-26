@@ -1,12 +1,13 @@
 """
-Updated sensor.py - supports country-level and all place levels
-Key changes:
-- URL builder handles both /country/ and /place/ URLs
-- Added all 8 AQI standards support
-- Fixed CO unit (μg/m³ not mg/m³)
-- Updated AQI Gauge regex
-- Level regex includes "中等"
-- Added pollen/allergy sensors (桦木, 草, 苍木/桤木, 橄榄树, 豚草, 文蒿/蒿, 花粉总量, 过敏风险指数)
+Air Quality CN - Home Assistant Custom Component
+Supports air-quality.com data for any global location.
+
+Features:
+- 6-level cascade location selection (continent → country → region → city → district → street)
+- 8 AQI standards: CN, US, AU, CA, NL, EU, UK, IN
+- 6 pollutants: PM2.5, PM10, O3, NO2, CO, SO2
+- 8 pollen sensors + allergy risk index (available during pollen season)
+- Weather: temperature, humidity, wind speed/direction, UV index
 """
 import asyncio
 import json
@@ -36,35 +37,38 @@ from .const import DOMAIN, CONF_PLACE, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN
 
 _LOGGER = logging.getLogger(__name__)
 
+# 污染物名称
 POLLUTANT_NAMES = ["PM2.5", "PM10", "O3", "NO2", "CO", "SO2"]
 
-# 花粉类型映射：中文名 -> 传感器 key
-POLLEN_TYPES = {
-    "花粉": "pollen_total",
-    "桦木": "pollen_birch",
-    "桦木花粉": "pollen_birch",
-    "草": "pollen_grass",
-    "草花粉": "pollen_grass",
-    "苍木": "pollen_alder",
-    "苍木花粉": "pollen_alder",
-    "桤木": "pollen_alder",
-    "桤木花粉": "pollen_alder",
-    "橄榄树": "pollen_olive",
-    "橄榄树花粉": "pollen_olive",
-    "豚草": "pollen_ragweed",
-    "豚草花粉": "pollen_ragweed",
-    "文蒿": "pollen_mugwort",
-    "文蒿花粉": "pollen_mugwort",
-    "蒿": "pollen_mugwort",
-    "蒿花粉": "pollen_mugwort",
-    "过敏风险指数": "allergy_risk",
-    "过敏风险": "allergy_risk",
-}
-
+# 风向索引（0-360° 每 22.5° 一个方向）
 WIND_DIRECTIONS = [
     "北", "北东北", "东北", "东东北", "东", "东东南", "东南", "南东南",
     "南", "南西南", "西南", "西西南", "西", "西西北", "西北", "北西北",
 ]
+
+# 花粉类型映射：HTML 中的 name → sensor key
+POLLEN_TYPES = {
+    "花粉": "pollen_total",
+    "桦木花粉": "pollen_birch",
+    "桤木花粉": "pollen_birch",
+    "艾桤木花粉": "pollen_birch",
+    "草花粉": "pollen_grass",
+    "野草花粉": "pollen_grass",
+    "桤木": "pollen_alder",
+    "桤木花粉": "pollen_alder",
+    "艾桤木": "pollen_alder",
+    "艾桤木花粉": "pollen_alder",
+    "橄榄树花粉": "pollen_olive",
+    "橄榄花粉": "pollen_olive",
+    "豚草花粉": "pollen_ragweed",
+    "野草花粉": "pollen_ragweed",
+    "艾蒿花粉": "pollen_mugwort",
+    "艾蒿": "pollen_mugwort",
+    "艾草花粉": "pollen_mugwort",
+    "艾草": "pollen_mugwort",
+    "过敏风险指数": "allergy_risk",
+    "过敏风险": "allergy_risk",
+}
 
 NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 
@@ -89,18 +93,15 @@ def _to_int(value, default=None):
 
 def _build_url(place, standard):
     """Build the full URL from place string and standard.
-    
     Place formats:
-    - 'china/haidian/7d638731' -> /place/china/haidian/7d638731
-    - 'china//7d638731' -> /place/china//7d638731 (district with no city name)
-    - 'japan/48e5965c' -> /country/japan/48e5965c (country-level, 2 segments)
+    - 'china/haidian/7d638731'  -> /place/china/haidian/7d638731
+    - 'china//7d638731'         -> /place/china//7d638731 (district, no city name)
+    - 'japan/48e5965c'          -> /country/japan/48e5965c (country-level, 2 segments)
     """
     parts = place.strip("/").split("/")
     if len(parts) == 2:
-        # Country level: {country_url_key}/{country_id}
         return f"https://air-quality.com/country/{place}?lang=zh-Hans&standard={standard}"
     else:
-        # Region/City/District level: {country}/{name}/{id}
         return f"https://air-quality.com/place/{place}?lang=zh-Hans&standard={standard}"
 
 
@@ -121,52 +122,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     except Exception as e:
         _LOGGER.error("首次数据刷新失败: %s，仍将创建实体。", e)
 
-    entities = []
+    # (key, 显示名, 单位, device_class, state_class, icon)
     sensor_defs = [
-        # 基本空气质量
-        ("aqi", "AQI", None, SensorDeviceClass.AQI, SensorStateClass.MEASUREMENT, "mdi:air-filter"),
-        ("level", "空气质量等级", None, None, None, "mdi:numeric"),
-        
-        # 污染物
-        ("pm25", "PM2.5", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM25, SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("pm10", "PM10", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10, SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("o3", "臭氧 O3", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("no2", "二氧化氮 NO2", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co", "一氧化碳 CO", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
-        ("so2", "二氧化硫 SO2", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:smog"),
-        
-        # 花粉/过敏
-        ("pollen", "花粉浓度", None, None, None, "mdi:flower-pollen"),
-        ("pollen_max", "花粉浓度最大值", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:chart-line"),
-        ("pollen_total", "花粉总量", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:flower-pollen"),
-        ("allergy_risk", "过敏风险指数", None, None, SensorStateClass.MEASUREMENT, "mdi:alert-circle"),
-        ("pollen_birch", "桦木花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:tree"),
-        ("pollen_grass", "草花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:grass"),
-        ("pollen_alder", "桤木花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:tree"),
-        ("pollen_olive", "橄榄树花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:tree"),
-        ("pollen_ragweed", "豚草花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:flower"),
-        ("pollen_mugwort", "蒿花粉", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:leaf"),
-        
+        ("aqi",             "AQI",                         None,                                      SensorDeviceClass.AQI,              SensorStateClass.MEASUREMENT, "mdi:air-filter"),
+        ("level",           "空气质量等级",                  None,                                      None,                               None,                         "mdi:numeric"),
+        ("pm25",            "PM2.5",                        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("pm10",            "PM10",                         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("o3",              "臭氧 O3",                      CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("no2",             "二氧化氮 NO2",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("co",              "一氧化碳 CO",                    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("so2",             "二氧化硫 SO2",                  CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:smog"),
+        # 花粉（花粉季之外均为 None，属正常）
+        ("pollen",          "花粉浓度",                      None,                                      None,                               None,                         "mdi:flower-pollen"),
+        ("pollen_max",      "花粉浓度范围最大值",             "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
+        ("pollen_birch",    "桦木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:sprout"),
+        ("pollen_grass",    "草花粉",                        "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:grass"),
+        ("pollen_alder",    "桤木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:flower"),
+        ("pollen_olive",    "橄榄树花粉",                    "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:tree"),
+        ("pollen_ragweed",  "豚草花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:weed"),
+        ("pollen_mugwort",  "艾蒿花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:flower-tulip"),
+        ("allergy_risk",   "过敏风险指数",                  None,                                      None,                               SensorStateClass.MEASUREMENT, "mdi:allergy"),
         # 天气
-        ("temperature", "温度", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
-        ("humidity", "湿度", PERCENTAGE, SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, "mdi:water-percent"),
-        ("wind_speed", "风速", UnitOfSpeed.KILOMETERS_PER_HOUR, SensorDeviceClass.WIND_SPEED, SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
-        ("wind_direction", "风向", None, None, None, "mdi:compass"),
-        ("wind_degrees", "风向角度", DEGREE, None, SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
-        ("uv_index", "紫外线指数", "UVI", None, SensorStateClass.MEASUREMENT, "mdi:sunglasses"),
-        ("update_time", "数据更新时间", None, SensorDeviceClass.TIMESTAMP, None, "mdi:clock"),
+        ("temperature",     "温度",                          UnitOfTemperature.CELSIUS,                 SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+        ("humidity",        "湿度",                          PERCENTAGE,                                SensorDeviceClass.HUMIDITY,         SensorStateClass.MEASUREMENT, "mdi:water-percent"),
+        ("wind_speed",      "风速",                          UnitOfSpeed.KILOMETERS_PER_HOUR,           SensorDeviceClass.WIND_SPEED,      SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
+        ("wind_direction",  "风向",                          None,                                      None,                               None,                         "mdi:compass"),
+        ("wind_degrees",    "风向角度",                      DEGREE,                                    None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
+        ("uv_index",        "紫外线指数",                    "UVI",                                     None,                               SensorStateClass.MEASUREMENT, "mdi:sunglasses"),
+        ("update_time",     "数据更新时间",                  None,                                      SensorDeviceClass.TIMESTAMP,        None,                         "mdi:clock"),
     ]
 
-    try:
-        for key, name, unit, device_class, state_class, icon in sensor_defs:
-            entities.append(
-                AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place, place_name)
-            )
-        async_add_entities(entities)
-        _LOGGER.info("已创建 %d 个传感器, 地点: %s", len(entities), place_name)
-    except Exception as e:
-        _LOGGER.exception("创建传感器失败: %s", e)
-        raise
+    entities = []
+    for key, name, unit, device_class, state_class, icon in sensor_defs:
+        entities.append(
+            AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place, place_name)
+        )
+
+    async_add_entities(entities)
+    _LOGGER.info("已创建 %d 个传感器, 地点: %s", len(entities), place_name)
 
 
 class AirQualityCoordinator(DataUpdateCoordinator):
@@ -193,64 +186,86 @@ class AirQualityCoordinator(DataUpdateCoordinator):
 
         _q = r"""['"]"""
 
-        # AQI — from JS Gauge() initialization
+        # ================================================================
+        # AQI — 从 JS Gauge() 初始化中提取 value
+        # 格式: Gauge({ value: 58, ... })
+        # ================================================================
         aqi_match = re.search(r"Gauge\([\s\S]+?value:\s*(\d+)\s*\}", html)
         if not aqi_match:
-            aqi_match = re.search(r"AQI \((?:美国|中国|澳大利亚|加拿大|荷兰|欧洲|英国|印度)标准\)\s*(\d+)", html)
+            aqi_match = re.search(
+                r"AQI \((?:中国|中国香港|美国|澳大利亚|加拿大|英国|欧盟|法国|德国|意大利|西班牙|荷兰|波兰|俄罗斯|印度)标准\)\s*(\d+)",
+                html
+            )
         data["aqi"] = _to_int(aqi_match.group(1)) if aqi_match else None
 
-        # 等级 — includes "中等" for aqi_us moderate
+        # ================================================================
+        # 空气质量等级
+        # ================================================================
         level_match = re.search(r"(优|良|中等|轻度污染|中度污染|重度污染|严重污染)", html)
         data["level"] = level_match.group(1) if level_match else None
 
-        # 污染物 — 使用通用 name-value 匹配
-        for name in POLLUTANT_NAMES:
-            match = re.search(
-                rf"<div class={_q}name{_q}>{re.escape(name)}</div>.*?<div class={_q}value{_q}>{NUM_PATTERN}</div>",
-                html, re.DOTALL
-            )
-            key = name.lower().replace(".", "")
-            data[key] = _to_float(match.group(1)) if match else None
-
-        # 解析所有 name-value 对，用于花粉数据
+        # ================================================================
+        # 污染物 + 花粉 — 统一用 all_pairs 提取所有 name-value 对
+        # HTML 结构: <div class="name">PM2.5</div><div class="value">25</div>
+        #            <div class="name">花粉</div><div class="value">301~500</div>
+        # ================================================================
         all_pairs = re.findall(
             rf"<div class={_q}name{_q}>([^<]+)</div>.*?<div class={_q}value{_q}>([^<]+)</div>",
             html, re.DOTALL
         )
-        
-        # 花粉数据处理
-        for name, value in all_pairs:
-            name_clean = name.strip()
-            value_clean = value.strip()
-            
-            # 匹配已知的花粉类型
-            if name_clean in POLLEN_TYPES:
-                sensor_key = POLLEN_TYPES[name_clean]
-                # 尝试解析数值
-                range_match = re.search(r"(\d+(?:\.\d+)?)\s*~\s*(\d+(?:\.\d+)?)", value_clean)
-                if range_match:
-                    # 如果是范围，存储最大值
-                    data[sensor_key] = _to_float(range_match.group(2))
-                else:
-                    single_match = re.search(r"(\d+(?:\.\d+)?)", value_clean)
-                    if single_match:
-                        data[sensor_key] = _to_float(single_match.group(1))
-                    else:
-                        # 非数值（如"无"、"低"等），存储原始字符串
-                        data[sensor_key] = value_clean
-            
-            # 兼容旧的 "花粉" 字段
-            if name_clean == "花粉":
-                data["pollen"] = value_clean
-                range_match = re.search(r"(\d+(?:\.\d+)?)\s*~\s*(\d+(?:\.\d+)?)", value_clean)
-                if range_match:
-                    data["pollen_max"] = _to_float(range_match.group(2))
-                else:
-                    single_match = re.search(r"(\d+(?:\.\d+)?)", value_clean)
-                    if single_match:
-                        data["pollen_max"] = _to_float(single_match.group(1))
 
+        # 初始化花粉传感器为 None（花粉季之外均为空，属正常）
+        for _pk in ["pollen_total", "pollen_birch", "pollen_grass",
+                     "pollen_alder", "pollen_olive", "pollen_ragweed",
+                     "pollen_mugwort", "allergy_risk"]:
+            data[_pk] = None
+
+        pollen_raw_str = None
+        pollen_max_value = None
+
+        for name_raw, value_raw in all_pairs:
+            name = name_raw.strip()
+            value = value_raw.strip()
+
+            # 污染物（6种）
+            if name in POLLUTANT_NAMES:
+                key = name.lower().replace(".", "")
+                num_m = re.search(NUM_PATTERN, value)
+                data[key] = _to_float(num_m.group(1)) if num_m else None
+
+            # 花粉类型（通过 POLLEN_TYPES 映射）
+            elif name in POLLEN_TYPES:
+                sensor_key = POLLEN_TYPES[name]
+                range_m = re.search(r"(\d+)\s*~\s*(\d+)", value)
+                if range_m:
+                    val = int(range_m.group(2))      # 范围 → 取最大值
+                    data[sensor_key] = val
+                    # 记录花粉原始字符串和最大值
+                    if sensor_key == "pollen_total" and pollen_raw_str is None:
+                        pollen_raw_str = value
+                        pollen_max_value = val
+                else:
+                    num_m = re.search(NUM_PATTERN, value)
+                    if num_m:
+                        val = _to_float(num_m.group(1))
+                        data[sensor_key] = val
+                        if sensor_key == "pollen_total" and pollen_raw_str is None:
+                            pollen_raw_str = value
+                            pollen_max_value = val
+                    else:
+                        # 非数值（如"低"/"中"/"高"），存原始字符串
+                        data[sensor_key] = value
+                        if sensor_key == "pollen_total" and pollen_raw_str is None:
+                            pollen_raw_str = value
+
+        # pollen: 原始字符串（如 "301~500"），用于显示
+        data["pollen"] = pollen_raw_str
+        # pollen_max: 范围最大值（数值），用于历史记录和仪表盘
+        data["pollen_max"] = pollen_max_value
+
+        # ================================================================
         # 更新时间
+        # ================================================================
         update_time = None
         time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T]+)\s*</div>', html)
         if time_match:
@@ -271,19 +286,22 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             update_time = datetime.now(timezone.utc)
         data["update_time"] = update_time
 
-        # 温度
-        temp_match = re.search(rf"<div class={_q}temperature{_q}>(-?" + NUM_PATTERN + r")℃</div>", html)
+        # ================================================================
+        # 天气：温度、湿度、风速
+        # 注：部分字段值与单位之间可能有空格或特殊字符
+        # ================================================================
+        temp_match = re.search(rf"<div class={_q}temperature{_q}>\s*(-?\d+(?:\.\d+)?)[^<]*</div>", html)
         data["temperature"] = _to_float(temp_match.group(1)) if temp_match else None
 
-        # 湿度
-        hum_match = re.search(rf"<div class={_q}humidity{_q}>" + NUM_PATTERN + r"%</div>", html)
+        hum_match = re.search(rf"<div class={_q}humidity{_q}>\s*{NUM_PATTERN}\s*%</div>", html)
         data["humidity"] = _to_float(hum_match.group(1)) if hum_match else None
 
-        # 风速
-        wind_match = re.search(rf"<div class={_q}wind{_q}>" + NUM_PATTERN + r" kph</div>", html)
+        wind_match = re.search(rf"<div class={_q}wind{_q}>\s*{NUM_PATTERN}\s*kph</div>", html)
         data["wind_speed"] = _to_float(wind_match.group(1)) if wind_match else None
 
-        # 风向 & UV from curWeatherData JS object
+        # ================================================================
+        # 风向角度 + UV — 从 curWeatherData JS 对象提取
+        # ================================================================
         wind_degrees = None
         wind_direction = None
         uv = None
@@ -315,17 +333,25 @@ class AirQualityCoordinator(DataUpdateCoordinator):
                         uv = _to_float(uv)
                 except (json.JSONDecodeError, TypeError):
                     pass
+
+        # UV 备选：从 HTML 提取（部分页面无 curWeatherData）
         if uv is None:
-            uv_match = re.search(rf"<div class={_q}uv{_q}>\s*" + NUM_PATTERN + r"\s+of\s+11\s*</div>", html)
+            # 最大值不固定（各地区 UV 上限不同），不硬编码
+            uv_match = re.search(rf"<div class={_q}uv{_q}>\s*{NUM_PATTERN}\s+of\s+\d+\s*</div>", html)
             if uv_match:
                 uv = _to_float(uv_match.group(1))
+
         data["wind_degrees"] = wind_degrees
         data["wind_direction"] = wind_direction
         data["uv_index"] = uv
 
+        # ================================================================
+        # 健康警告
+        # ================================================================
         all_none = all(v is None for v in data.values())
         if all_none:
             _LOGGER.warning("所有解析字段均为空，请检查网页结构是否变化。URL: %s", self.url)
+
         return data
 
 
