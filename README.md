@@ -1,56 +1,41 @@
-# 在意空气 (Air Quality CN)
+# Air Quality CN (在意空气)
 
-[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-
-Home Assistant 集成，通过抓取 [air-quality.com](https://air-quality.com) 网页获取空气质量数据。
+Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-quality.com) 获取全球空气质量数据。
 
 ## 功能
 
-- 实时 AQI 数据（支持中国、美国、澳大利亚标准）
-- 六大污染物监测：PM2.5、PM10、O3、NO2、CO、SO2
-- 花粉浓度
-- 天气数据：温度、湿度、风速、风向、紫外线指数
-- 数据更新时间
+- 🌍 支持全球 195+ 个国家、2000+ 地区的空气质量数据
+- 📊 AQI（中国/美国/澳大利亚/加拿大/英国/欧盟/印度标准）、PM2.5、PM10、O3、NO2、CO、SO2
+- 🌸 花粉浓度（含6种细分：桦木/草/桤木/橄榄树/豚草/艾蒿）
+- 🤧 过敏风险指数
+- 🌡️ 天气数据：温度、湿度、风速、风向、紫外线指数
+- 🔍 两种地点选择方式：搜索或层级浏览（洲→国家→地区→城市→区→街道）
+- 🔄 可配置的数据刷新间隔
 
 ## 安装
 
 ### HACS（推荐）
-1. 安装 [HACS](https://hacs.xyz/)
-2. 进入 HACS → 集成 → ... → 添加自定义仓库
-3. 填入：`https://github.com/yahooor/air_quality_cn`
-4. 搜索并安装「在意空气」
 
-### 手动安装
-1. 下载 release 中的 `air_quality_cn.zip`
-2. 解压到 `custom_components/air_quality_cn/`
+1. 在 HACS 中添加自定义仓库：`https://github.com/yahooor/air_quality_cn`
+2. 搜索 "Air Quality CN" 并安装
 3. 重启 Home Assistant
 
-## 配置
+### 手动安装
 
-1. Home Assistant → 设置 → 设备与服务
-2. 点击「添加集成」
-3. 搜索「在意空气」或「Air Quality CN」
-4. 按提示填写地点和 AQI 标准
+1. 下载最新 Release 的 `air_quality_cn.zip`
+2. 解压到 Home Assistant 的 `custom_components/` 目录
+3. 重启 Home Assistant
 
-## 调试
+## 传感器
 
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.air_quality_cn: debug
-```
-
-## 支持的城市
-
-中国：北京、上海、广州、深圳、成都、杭州、武汉、西安、南京、重庆、天津、苏州等
-
-亚太：东京、首尔、曼谷、新加坡、悉尼、墨尔本、台北、香港、澳门、雅加达、吉隆坡
-
-欧洲：伦敦、巴黎、柏林、罗马、马德里、阿姆斯特丹、维也纳、布拉格、华沙、莫斯科、斯德哥尔摩
-
-美洲：纽约、洛杉矶、旧金山、温哥华、多伦多、墨西哥城、圣保罗
-
-## 许可证
-
-MIT License
+| 传感器 | 说明 |
+|--------|------|
+| AQI | 空气质量指数 |
+| 空气质量等级 | 优/良/中等/轻度污染等 |
+| PM2.5 / PM10 / O3 / NO2 / SO2 / CO | 污染物浓度（μg/m³）|
+| 花粉浓度 | 总花粉指数 |
+| 桦木花粉 / 草花粉 / 桤木花粉 | 细分花粉（季节性）|
+| 橄榄树花粉 / 豚草花粉 / 艾蒿花粉 | 细分花粉（季节性）|
+| 过敏风险指数 | 综合过敏风险 |
+| 温度 / 湿度 / 风速 / 风向 | 天气数据 |
+| 紫外线指数 / 数据更新时间 | 辅助数据 |
