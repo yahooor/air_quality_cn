@@ -1,3 +1,12 @@
+"""
+Updated sensor.py - supports country-level and all place levels
+Key changes:
+- URL builder handles both /country/ and /place/ URLs
+- Added aqi_au standard support
+- Fixed CO unit (μg/m³ not mg/m³)
+- Updated AQI Gauge regex
+- Level regex includes "中等"
+"""
 import asyncio
 import json
 import logging
@@ -15,7 +24,6 @@ from homeassistant.const import (
     PERCENTAGE,
     UnitOfSpeed,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-    CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
     DEGREE,
 )
 from homeassistant.core import HomeAssistant
@@ -23,7 +31,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
 
-from .const import DOMAIN, CONF_PLACE, CONF_STANDARD, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_PLACE, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,7 +45,6 @@ NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 
 
 def _to_float(value, default=None):
-    """Safely convert a value to float, return default on failure."""
     if value is None:
         return default
     try:
@@ -47,7 +54,6 @@ def _to_float(value, default=None):
 
 
 def _to_int(value, default=None):
-    """Safely convert a value to int, return default on failure."""
     if value is None:
         return default
     try:
@@ -56,16 +62,33 @@ def _to_int(value, default=None):
         return default
 
 
+def _build_url(place, standard):
+    """Build the full URL from place string and standard.
+    
+    Place formats:
+    - 'china/haidian/7d638731' -> /place/china/haidian/7d638731
+    - 'china//7d638731' -> /place/china//7d638731 (district with no city name)
+    - 'japan/48e5965c' -> /country/japan/48e5965c (country-level, 2 segments)
+    """
+    parts = place.strip("/").split("/")
+    if len(parts) == 2:
+        # Country level: {country_url_key}/{country_id}
+        return f"https://air-quality.com/country/{place}?lang=zh-Hans&standard={standard}"
+    else:
+        # Region/City/District level: {country}/{name}/{id}
+        return f"https://air-quality.com/place/{place}?lang=zh-Hans&standard={standard}"
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     place = entry.data[CONF_PLACE]
-    standard = entry.data[CONF_STANDARD]
-    # 优先从 options 取，其次从 data 取，最后用默认值
+    standard = entry.data.get(CONF_STANDARD, "aqi_cn")
+    place_name = entry.data.get(CONF_PLACE_NAME, place)
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL,
         entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
 
-    url = f"https://air-quality.com/place/{place}?lang=zh-Hans&standard={standard}"
+    url = _build_url(place, standard)
     coordinator = AirQualityCoordinator(hass, url, scan_interval)
 
     try:
@@ -81,10 +104,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("pm10", "PM10", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10, SensorStateClass.MEASUREMENT, "mdi:blur"),
         ("o3", "臭氧 O3", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
         ("no2", "二氧化氮 NO2", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co", "一氧化碳 CO", CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("co", "一氧化碳 CO", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
         ("so2", "二氧化硫 SO2", CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, None, SensorStateClass.MEASUREMENT, "mdi:smog"),
         ("pollen", "花粉浓度", None, None, None, "mdi:flower-pollen"),
         ("pollen_max", "花粉浓度最大值", "粒/千平方毫米", None, SensorStateClass.MEASUREMENT, "mdi:chart-line"),
+        ("pollen_birch", "桦木花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:sprout"),
+        ("pollen_grass", "草花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:grass"),
+        ("pollen_alder", "桤木花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:flower"),
+        ("pollen_olive", "橄榄树花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:tree"),
+        ("pollen_ragweed", "豚草花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:weed"),
+        ("pollen_mugwort", "艾蒿花粉", "粒/m³", None, SensorStateClass.MEASUREMENT, "mdi:flower-tulip"),
+        ("allergy_risk", "过敏风险指数", None, None, SensorStateClass.MEASUREMENT, "mdi:allergy"),
         ("temperature", "温度", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
         ("humidity", "湿度", PERCENTAGE, SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, "mdi:water-percent"),
         ("wind_speed", "风速", UnitOfSpeed.KILOMETERS_PER_HOUR, SensorDeviceClass.WIND_SPEED, SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
@@ -97,10 +127,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     try:
         for key, name, unit, device_class, state_class, icon in sensor_defs:
             entities.append(
-                AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place)
+                AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place, place_name)
             )
         async_add_entities(entities)
-        _LOGGER.info("已创建 %d 个传感器, 地点: %s", len(entities), place)
+        _LOGGER.info("已创建 %d 个传感器, 地点: %s", len(entities), place_name)
     except Exception as e:
         _LOGGER.exception("创建传感器失败: %s", e)
         raise
@@ -128,57 +158,50 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("成功获取网页，长度: %d 字符", len(html))
         data = {}
 
-        # 兼容单引号和双引号的正则辅助
-        _q = r"""['"]"""  # 匹配 ' 或 "
+        _q = r"""['"]"""
 
-        # AQI — 网站已改版，数据在 JS 的 Gauge() 初始化里，不再是 HTML 文本
+        # AQI — from JS Gauge() initialization
         aqi_match = re.search(r"Gauge\([\s\S]+?value:\s*(\d+)\s*\}", html)
         if not aqi_match:
-            # 备选：从 meta description 提取（格式如 "AQI (美国标准) 70 中等"）
-            aqi_match = re.search(r"AQI \((?:美国|中国)标准\)\s*(\d+)", html)
+            aqi_match = re.search(r"AQI \((?:美国|中国|澳大利亚)标准\)\s*(\d+)", html)
         data["aqi"] = _to_int(aqi_match.group(1)) if aqi_match else None
 
-        # 等级
+        # 等级 — includes "中等" for aqi_us moderate
         level_match = re.search(r"(优|良|中等|轻度污染|中度污染|重度污染|严重污染)", html)
         data["level"] = level_match.group(1) if level_match else None
 
-        # 污染物 — 兼容单/双引号
+        # 污染物
         for name in POLLUTANT_NAMES:
             match = re.search(
                 rf"<div class={_q}name{_q}>{re.escape(name)}</div>.*?<div class={_q}value{_q}>{NUM_PATTERN}</div>",
                 html, re.DOTALL
             )
             key = name.lower().replace(".", "")
-            # CO 的值是 mg/m³ 量级（如 0.8），需要 float；其他污染物是整数
-            if key == "co":
-                data[key] = _to_float(match.group(1)) if match else None
-            else:
-                data[key] = _to_int(match.group(1)) if match else None
+            # CO is also in μg/m³ on the website (e.g., 600 μg/m³), not mg/m³
+            data[key] = _to_float(match.group(1)) if match else None
 
         # 花粉
         pollen_match = re.search(rf"<div class={_q}name{_q}>花粉</div>.*?<div class={_q}value{_q}>([^<]+)</div>", html, re.DOTALL)
         pollen = pollen_match.group(1).strip() if pollen_match else None
         data["pollen"] = pollen
 
-        # 花粉最大值
         pollen_max = None
         if pollen:
             range_match = re.search(r"(\d+)~(\d+)", pollen)
             if range_match:
                 pollen_max = int(range_match.group(2))
             else:
-                single_match = re.search(r"(\d+)", pollen)
+                single_match = re.search(r"(\d+(?:\.\d+)?)", pollen)
                 if single_match:
-                    pollen_max = int(single_match.group(1))
+                    pollen_max = _to_float(single_match.group(1))
         data["pollen_max"] = pollen_max
 
-        # 更新时间（返回 UTC datetime 对象，HA 负责按用户时区显示）
+        # 更新时间
         update_time = None
         time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T]+)\s*</div>', html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
-                # 网站返回的通常是北京时间，解析后标记为 UTC+8 再转 UTC
                 local_dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
                 cst = timezone(timedelta(hours=8))
                 update_time = local_dt.replace(tzinfo=cst).astimezone(timezone.utc)
@@ -206,7 +229,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         wind_match = re.search(rf"<div class={_q}wind{_q}>" + NUM_PATTERN + r" kph</div>", html)
         data["wind_speed"] = _to_float(wind_match.group(1)) if wind_match else None
 
-        # 风向 & UV
+        # 风向 & UV from curWeatherData JS object
         wind_degrees = None
         wind_direction = None
         uv = None
@@ -244,19 +267,21 @@ class AirQualityCoordinator(DataUpdateCoordinator):
                 uv = _to_float(uv_match.group(1))
         data["wind_degrees"] = wind_degrees
         data["wind_direction"] = wind_direction
-        data["uv_index"] = uv  # None if no data, numeric if available
+        data["uv_index"] = uv
 
         all_none = all(v is None for v in data.values())
         if all_none:
-            _LOGGER.warning("所有解析字段均为空，请检查网页结构是否变化。地点: %s", self.url)
+            _LOGGER.warning("所有解析字段均为空，请检查网页结构是否变化。URL: %s", self.url)
         return data
 
 
 class AirQualitySensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, key, name, unit, device_class, state_class, icon, place):
+    def __init__(self, coordinator, key, name, unit, device_class, state_class, icon, place, place_name):
         super().__init__(coordinator)
         self._key = key
         self._attr_name = name
+        self._place = place
+        self._place_name = place_name
         safe_place = place.replace("/", "_")
         self._attr_unique_id = f"air_quality_cn_{safe_place}_{key}"
         self._attr_icon = icon
@@ -265,7 +290,7 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
         self._attr_native_unit_of_measurement = unit
         self._attr_device_info = {
             "identifiers": {(DOMAIN, place)},
-            "name": f"在意空气 {place}",
+            "name": f"在意空气 {place_name}",
             "manufacturer": "在意空气",
             "model": "网页抓取",
         }
@@ -278,8 +303,7 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
                 return value
             if isinstance(value, str):
                 try:
-                    dt = datetime.fromisoformat(value)
-                    return dt
+                    return datetime.fromisoformat(value)
                 except Exception:
                     return None
             return None
