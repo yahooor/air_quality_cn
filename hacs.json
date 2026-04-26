@@ -1,5 +1,1 @@
-{
-  "name": "Air Quality CN",
-  "content_in_root": false,
-  "homeassistant": "2024.1.0"
-}
+{"name": "Air Quality CN", "content_in_root": false, "homeassistant": "2024.1.0"}
