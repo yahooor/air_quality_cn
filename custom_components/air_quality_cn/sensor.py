@@ -199,10 +199,24 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         data["aqi"] = _to_int(aqi_match.group(1)) if aqi_match else None
 
         # ================================================================
-        # 空气质量等级
+        # 空气质量等级 — 从 AQI 数值推导（页面 HTML 只有英文，动态设置中文）
         # ================================================================
-        level_match = re.search(r"(优|良|中等|轻度污染|中度污染|重度污染|严重污染)", html)
-        data["level"] = level_match.group(1) if level_match else None
+        if data["aqi"] is not None:
+            _aqi = data["aqi"]
+            if _aqi <= 50:
+                data["level"] = "优"
+            elif _aqi <= 100:
+                data["level"] = "良"
+            elif _aqi <= 150:
+                data["level"] = "轻度污染"
+            elif _aqi <= 200:
+                data["level"] = "中度污染"
+            elif _aqi <= 300:
+                data["level"] = "重度污染"
+            else:
+                data["level"] = "严重污染"
+        else:
+            data["level"] = None
 
         # ================================================================
         # 污染物 + 花粉 — 统一用 all_pairs 提取所有 name-value 对
