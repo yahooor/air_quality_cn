@@ -9,6 +9,6 @@
   "iot_class": "cloud_polling",
   "requirements": [],
   "version": "2.3.6",
-  "icon": "icon.png",
+  "icon": "air_quality_cn/icon.png",
   "issue_tracker": "https://github.com/yahooor/air_quality_cn/issues"
 }
