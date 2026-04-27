@@ -291,30 +291,29 @@ class AirQualityCoordinator(DataUpdateCoordinator):
 
         # ================================================================
         # 更新时间
-        # air-quality.com 页面中 update-time 的时间字符串为 UTC 时间（无时区标注）。
-        # 若 HTML 含 timezone offset（如 "+08:00"）则直接解析；
-        # 否则一律视为 UTC，避免人为加 +8 导致显示偏差。
+        # air-quality.com 页面中 update-time 的时间字符串为中国时区 (UTC+8)。
+        # 为避免时区转换导致显示错误，统一存储为本地时间（不加时区信息），
+        # 让 Home Assistant 自动处理显示。
         # ================================================================
         update_time = None
         time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T+Z]+)\s*</div>', html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
-                # 先尝试 ISO 格式（可能含时区，如 2024-01-01T12:00:00+08:00）
+                # 先尝试 ISO 格式
                 dt = datetime.fromisoformat(raw_time)
-                if dt.tzinfo is None:
-                    # 无时区信息 → 视为 UTC
-                    dt = dt.replace(tzinfo=timezone.utc)
-                update_time = dt.astimezone(timezone.utc)
+                if dt.tzinfo is not None:
+                    # 有时区 → 转换本地时间
+                    dt = dt.astimezone(None)
+                update_time = dt.replace(tzinfo=None)
             except ValueError:
                 try:
-                    # 尝试 "%Y-%m-%d %H:%M:%S" 格式（无时区）→ 视为 UTC
-                    local_dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
-                    update_time = local_dt.replace(tzinfo=timezone.utc)
+                    # 尝试 "%Y-%m-%d %H:%M:%S" 格式
+                    update_time = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
                 except Exception:
                     pass
         if not update_time:
-            update_time = datetime.now(timezone.utc)
+            update_time = datetime.now()
         data["update_time"] = update_time
 
         # ================================================================
@@ -411,10 +410,16 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
         value = self.coordinator.data.get(self._key)
         if self._key == "update_time":
             if isinstance(value, datetime):
+                # 确保有时区信息供 HA 使用
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
                 return value
             if isinstance(value, str):
                 try:
-                    return datetime.fromisoformat(value)
+                    dt = datetime.fromisoformat(value)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    return dt
                 except Exception:
                     return None
             return None
