@@ -146,7 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("so2",             "二氧化硫 SO2",                  CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:smog"),
         # 花粉（花粉季之外均为 None，属正常）
         ("pollen",          "花粉浓度",                      None,                                      None,                               None,                         "mdi:flower-pollen"),
-        ("pollen_max",      "花粉浓度范围最大值",             "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
+        ("pollen_max",      "花粉浓度范围最大值",             None,                                  None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
         ("pollen_birch",    "桦木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:sprout"),
         ("pollen_grass",    "草花粉",                        "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:grass"),
         ("pollen_alder",    "桤木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:flower"),
