@@ -92,22 +92,23 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_search_select(self, user_input=None):
         if user_input is not None:
-            idx = user_input.get("place_selection", 0)
-            if 0 <= idx < len(self._search_results):
+            idx = user_input.get("place_selection")
+            if idx is not None and 0 <= idx < len(self._search_results):
                 result = self._search_results[idx]
                 self._location_data["search_place"] = result
                 return await self.async_step_standard()
 
-        options = {}
+        # 构建选项列表（使用列表选择器）
+        options = []
         for i, r in enumerate(self._search_results):
             desc = r.get("description", "")
             name = r.get("name", "")
-            options[i] = f"{name} ({desc})" if desc else name
+            options.append(f"{name} ({desc})" if desc else name)
 
         schema = vol.Schema({
-            vol.Required("place_selection", default=0): vol.In(options),
+            vol.Required("place_selection"): vol.In({i: opt for i, opt in enumerate(options)}),
         })
-        return self.async_show_form(step_id="search_select", data_schema=schema)
+        return self.async_show_form(step_id="search_select", data_schema=schema, errors={"place_selection": "invalid_selection"})
 
     # ─── Level 1: Continent ──────────────────────────────────────
     async def async_step_continent(self, user_input=None):
