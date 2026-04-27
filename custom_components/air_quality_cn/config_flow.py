@@ -92,23 +92,37 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_search_select(self, user_input=None):
         if user_input is not None:
-            idx = user_input.get("place_selection")
-            if idx is not None and 0 <= idx < len(self._search_results):
-                result = self._search_results[idx]
-                self._location_data["search_place"] = result
-                return await self.async_step_standard()
+            # 获取用户选择的值
+            selected = user_input.get("place_selection", "")
+            # 尝试解析为索引
+            try:
+                idx = int(selected)
+                if 0 <= idx < len(self._search_results):
+                    result = self._search_results[idx]
+                    self._location_data["search_place"] = result
+                    return await self.async_step_standard()
+            except (ValueError, TypeError):
+                pass
+            # 如果解析失败，显示错误
+            return self.async_show_form(
+                step_id="search_select", 
+                data_schema=vol.Schema({
+                    vol.Required("place_selection"): vol.In(
+                        {str(i): f"{r.get('name')} ({r.get('description', '')})" 
+                         for i, r in enumerate(self._search_results)}
+                    )
+                }),
+                errors={"place_selection": "invalid_selection"}
+            )
 
-        # 构建选项列表（使用列表选择器）
-        options = []
-        for i, r in enumerate(self._search_results):
-            desc = r.get("description", "")
-            name = r.get("name", "")
-            options.append(f"{name} ({desc})" if desc else name)
-
+        # 构建选项: 使用字符串索引作为key
+        options = {str(i): f"{r.get('name', '')} ({r.get('description', '')})" 
+                  for i, r in enumerate(self._search_results)}
+        
         schema = vol.Schema({
-            vol.Required("place_selection"): vol.In({i: opt for i, opt in enumerate(options)}),
+            vol.Required("place_selection"): vol.In(options),
         })
-        return self.async_show_form(step_id="search_select", data_schema=schema, errors={"place_selection": "invalid_selection"})
+        return self.async_show_form(step_id="search_select", data_schema=schema)
 
     # ─── Level 1: Continent ──────────────────────────────────────
     async def async_step_continent(self, user_input=None):
