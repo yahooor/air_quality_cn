@@ -15,6 +15,8 @@ import logging
 import re
 from datetime import datetime, timezone, timedelta
 
+import aiohttp
+
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
@@ -47,25 +49,35 @@ WIND_DIRECTIONS = [
 ]
 
 # 花粉类型映射：HTML 中的 name → sensor key
+# 注意：Python dict 不允许重复 key，重复 key 会被后者覆盖，务必保证每个 key 唯一
 POLLEN_TYPES = {
+    # 总花粉
     "花粉": "pollen_total",
+    # 桦木花粉
     "桦木花粉": "pollen_birch",
-    "桤木花粉": "pollen_birch",
-    "艾桤木花粉": "pollen_birch",
+    "桦树花粉": "pollen_birch",
+    # 草花粉
     "草花粉": "pollen_grass",
-    "野草花粉": "pollen_grass",
+    "禾草花粉": "pollen_grass",
+    # 桤木花粉（alder）—— 与桦木是不同树种，勿混淆
     "桤木": "pollen_alder",
     "桤木花粉": "pollen_alder",
     "艾桤木": "pollen_alder",
     "艾桤木花粉": "pollen_alder",
+    # 橄榄树花粉
     "橄榄树花粉": "pollen_olive",
     "橄榄花粉": "pollen_olive",
+    # 豚草花粉
     "豚草花粉": "pollen_ragweed",
-    "野草花粉": "pollen_ragweed",
+    "豚草": "pollen_ragweed",
+    # 艾蒿花粉
     "艾蒿花粉": "pollen_mugwort",
     "艾蒿": "pollen_mugwort",
     "艾草花粉": "pollen_mugwort",
     "艾草": "pollen_mugwort",
+    # 野草花粉（单独作为 ragweed 的备选，不再同时映射到 grass）
+    "野草花粉": "pollen_ragweed",
+    # 过敏风险
     "过敏风险指数": "allergy_risk",
     "过敏风险": "allergy_risk",
 }
@@ -175,7 +187,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         session = async_get_clientsession(self.hass)
         try:
-            async with session.get(self.url, timeout=30) as resp:
+            async with session.get(self.url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                 html = await resp.text()
         except Exception as e:
             _LOGGER.error("请求失败: %s", e)
@@ -279,21 +291,26 @@ class AirQualityCoordinator(DataUpdateCoordinator):
 
         # ================================================================
         # 更新时间
+        # air-quality.com 页面中 update-time 的时间字符串为 UTC 时间（无时区标注）。
+        # 若 HTML 含 timezone offset（如 "+08:00"）则直接解析；
+        # 否则一律视为 UTC，避免人为加 +8 导致显示偏差。
         # ================================================================
         update_time = None
-        time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T]+)\s*</div>', html)
+        time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T+Z]+)\s*</div>', html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
-                local_dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
-                cst = timezone(timedelta(hours=8))
-                update_time = local_dt.replace(tzinfo=cst).astimezone(timezone.utc)
+                # 先尝试 ISO 格式（可能含时区，如 2024-01-01T12:00:00+08:00）
+                dt = datetime.fromisoformat(raw_time)
+                if dt.tzinfo is None:
+                    # 无时区信息 → 视为 UTC
+                    dt = dt.replace(tzinfo=timezone.utc)
+                update_time = dt.astimezone(timezone.utc)
             except ValueError:
                 try:
-                    dt = datetime.fromisoformat(raw_time)
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone(timedelta(hours=8)))
-                    update_time = dt.astimezone(timezone.utc)
+                    # 尝试 "%Y-%m-%d %H:%M:%S" 格式（无时区）→ 视为 UTC
+                    local_dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
+                    update_time = local_dt.replace(tzinfo=timezone.utc)
                 except Exception:
                     pass
         if not update_time:
@@ -407,6 +424,14 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
     def available(self):
         if not self.coordinator.last_update_success:
             return False
+        # 花粉类传感器在非花粉季时值为 None，属于正常现象，视为"可用但无数据"
+        POLLEN_KEYS = {
+            "pollen", "pollen_max", "pollen_birch", "pollen_grass",
+            "pollen_alder", "pollen_olive", "pollen_ragweed",
+            "pollen_mugwort", "allergy_risk",
+        }
+        if self._key in POLLEN_KEYS:
+            return True
         value = self.coordinator.data.get(self._key)
         if self._key == "update_time":
             return value is not None

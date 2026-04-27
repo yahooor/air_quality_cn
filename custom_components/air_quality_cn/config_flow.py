@@ -302,7 +302,17 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Search path
         if "search_place" in self._location_data:
             result = self._location_data["search_place"]
-            place = result.get("url_key", "") + "/" + result.get("place_id", "")
+            url_key = result.get("url_key", "").strip("/")
+            place_id = result.get("place_id", "").strip("/")
+            # 防御：url_key 或 place_id 为空时不拼接多余斜杠
+            if url_key and place_id:
+                place = f"{url_key}/{place_id}"
+            elif url_key:
+                place = url_key
+            elif place_id:
+                place = place_id
+            else:
+                place = ""
             name = result.get("name", place)
             return place, name
 
