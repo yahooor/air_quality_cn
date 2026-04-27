@@ -132,9 +132,22 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         db = _load_locations_db(self.hass)
         if not db:
+            _LOGGER.error("Failed to load locations database")
             return await self.async_step_search()
+        
         self._db = db
-        continents = {c["name"]: c["name"] for c in db}
+        
+        # locations.json 使用 'n' 作为 name, 'c' 作为 countries
+        continents = {}
+        for c in db:
+            name = c.get("n")
+            if name:
+                continents[name] = name
+        
+        if not continents:
+            _LOGGER.error("No continents found in database")
+            return await self.async_step_search()
+        
         schema = vol.Schema({vol.Required("continent"): vol.In(continents)})
         return self.async_show_form(step_id="continent", data_schema=schema)
 
@@ -147,9 +160,12 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         continent_name = self._location_data.get("continent", "")
         countries = {}
         for c in (self._db or []):
-            if c["name"] == continent_name:
-                for country in c["countries"]:
-                    countries[country["name"]] = country["name"]
+            # 使用 'n' 获取洲名，'c' 获取国家列表
+            if c.get("n") == continent_name:
+                for country in c.get("c", []):
+                    name = country.get("n")
+                    if name:
+                        countries[name] = name
                 break
         schema = vol.Schema({vol.Required("country"): vol.In(countries)})
         return self.async_show_form(step_id="country", data_schema=schema)
@@ -262,24 +278,28 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         cn = self._location_data.get("continent", "")
         co = self._location_data.get("country_name", "")
         for c in self._db:
-            if c["name"] == cn:
-                for country in c["countries"]:
-                    if country["name"] == co:
+            # 使用 'n' 获取洲名，'c' 获取国家列表
+            if c.get("n") == cn:
+                for country in c.get("c", []):
+                    if country.get("n") == co:
                         return country
         return None
 
     def _get_regions(self):
         country = self._get_country_data()
-        return country.get("regions", []) if country else []
+        # 使用 'r' 获取地区列表
+        return country.get("r", []) if country else []
 
     def _get_cities(self):
         country = self._get_country_data()
         if not country:
             return []
         rn = self._location_data.get("region_name", "")
-        for region in country.get("regions", []):
-            if region["name"] == rn:
-                return region.get("cities", [])
+        # 遍历地区，找城市
+        for region in country.get("r", []):
+            if region.get("n") == rn:
+                # 使用 'c' 获取城市列表
+                return region.get("c", [])
         return []
 
     def _get_districts(self):
@@ -288,11 +308,12 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return []
         rn = self._location_data.get("region_name", "")
         cn = self._location_data.get("city_name", "")
-        for region in country.get("regions", []):
-            if region["name"] == rn:
-                for city in region.get("cities", []):
-                    if city["name"] == cn:
-                        return city.get("districts", [])
+        for region in country.get("r", []):
+            if region.get("n") == rn:
+                for city in region.get("c", []):
+                    if city.get("n") == cn:
+                        # 使用 'd' 获取区列表
+                        return city.get("d", [])
         return []
 
     def _get_streets(self):
@@ -303,13 +324,14 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         rn = self._location_data.get("region_name", "")
         cn = self._location_data.get("city_name", "")
         dn = self._location_data.get("district_name", "")
-        for region in country.get("regions", []):
-            if region["name"] == rn:
-                for city in region.get("cities", []):
-                    if city["name"] == cn:
-                        for district in city.get("districts", []):
-                            if district["name"] == dn:
-                                return district.get("streets", [])
+        for region in country.get("r", []):
+            if region.get("n") == rn:
+                for city in region.get("c", []):
+                    if city.get("n") == cn:
+                        for district in city.get("d", []):
+                            if district.get("n") == dn:
+                                # 使用 's' 获取街道列表
+                                return district.get("s", [])
         return []
 
     def _resolve_place_and_name(self):
