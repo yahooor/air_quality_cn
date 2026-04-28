@@ -40,7 +40,7 @@ def _load_locations_db(hass):
 
 
 class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 2
+    VERSION = "2.3.9"
 
     def __init__(self):
         self._location_data = {}
