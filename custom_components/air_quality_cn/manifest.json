@@ -5,6 +5,7 @@
     "@yahooor"
   ],
   "config_flow": true,
+  "options_flow": true,
   "documentation": "https://github.com/yahooor/air_quality_cn",
   "iot_class": "cloud_polling",
   "requirements": [],
