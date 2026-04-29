@@ -1,14 +1,9 @@
 """
-New config_flow.py for air_quality_cn integration
-Supports 6-level cascading selection:
-  Continent → Country → Region → City → District → Street/Community
-Also keeps the search API for quick lookup.
+config_flow.py for air_quality_cn integration
+Supports search-based location lookup only.
 """
 import voluptuous as vol
-import asyncio
 import logging
-import json
-import os
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -27,43 +22,19 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _load_locations_db(hass):
-    """Load locations.json from the integration directory."""
-    db_path = os.path.join(os.path.dirname(__file__), "locations.json")
-    if os.path.exists(db_path):
-        try:
-            with open(db_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            _LOGGER.warning("Failed to load locations database: %s", e)
-    return None
-
-
 class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = "2.3.9"
 
     def __init__(self):
-        self._location_data = {}
-        self._db = None
         self._search_results = []
+        self._selected_place = None
 
-    # ─── Entry point ──────────────────────────────────────────────
+    # ─── Entry point：直接进入搜索 ────────────────────────────────
     async def async_step_user(self, user_input=None):
-        """Choose between browsing hierarchy or searching."""
-        if user_input is not None:
-            if user_input.get("method") == "search":
-                return await self.async_step_search()
-            return await self.async_step_continent()
+        """直接进入地点搜索步骤。"""
+        return await self.async_step_search()
 
-        schema = vol.Schema({
-            vol.Required("method", default="search"): vol.In({
-                "search": "搜索地点",
-                "browse": "按层级浏览（洲→国家→地区→城市→区→街道）",
-            }),
-        })
-        return self.async_show_form(step_id="user", data_schema=schema)
-
-    # ─── Search path ─────────────────────────────────────────────
+    # ─── Step 1：输入搜索关键词 ───────────────────────────────────
     async def async_step_search(self, user_input=None):
         errors = {}
         if user_input is not None:
@@ -87,171 +58,51 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 errors["query"] = "invalid_place"
 
-        schema = vol.Schema({vol.Required("query"): str})
-        return self.async_show_form(step_id="search", data_schema=schema, errors=errors)
+        schema = vol.Schema({
+            vol.Required("query"): str,
+        })
+        return self.async_show_form(
+            step_id="search",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "hint": "输入城市、地区或监测站名称（支持中文或英文）"
+            },
+        )
 
+    # ─── Step 2：从搜索结果中选择地点 ────────────────────────────
     async def async_step_search_select(self, user_input=None):
         if user_input is not None:
-            # 获取用户选择的值
             selected = user_input.get("place_selection", "")
-            # 尝试解析为索引
             try:
                 idx = int(selected)
                 if 0 <= idx < len(self._search_results):
-                    result = self._search_results[idx]
-                    self._location_data["search_place"] = result
+                    self._selected_place = self._search_results[idx]
                     return await self.async_step_standard()
             except (ValueError, TypeError):
                 pass
-            # 如果解析失败，显示错误
+            # 解析失败，重新显示选择表单
             return self.async_show_form(
-                step_id="search_select", 
+                step_id="search_select",
                 data_schema=vol.Schema({
                     vol.Required("place_selection"): vol.In(
-                        {str(i): f"{r.get('name')} ({r.get('description', '')})" 
+                        {str(i): f"{r.get('name', '')} ({r.get('description', '')})"
                          for i, r in enumerate(self._search_results)}
                     )
                 }),
-                errors={"place_selection": "invalid_selection"}
+                errors={"place_selection": "invalid_selection"},
             )
 
-        # 构建选项: 使用字符串索引作为key
-        options = {str(i): f"{r.get('name', '')} ({r.get('description', '')})" 
-                  for i, r in enumerate(self._search_results)}
-        
+        options = {
+            str(i): f"{r.get('name', '')} ({r.get('description', '')})"
+            for i, r in enumerate(self._search_results)
+        }
         schema = vol.Schema({
             vol.Required("place_selection"): vol.In(options),
         })
         return self.async_show_form(step_id="search_select", data_schema=schema)
 
-    # ─── Level 1: Continent ──────────────────────────────────────
-    async def async_step_continent(self, user_input=None):
-        if user_input is not None:
-            self._location_data["continent"] = user_input["continent"]
-            return await self.async_step_country()
-
-        db = _load_locations_db(self.hass)
-        if not db:
-            _LOGGER.error("Failed to load locations database")
-            return await self.async_step_search()
-        
-        self._db = db
-        
-        # locations.json 使用 'n' 作为 name, 'c' 作为 countries
-        continents = {}
-        for c in db:
-            name = c.get("n")
-            if name:
-                continents[name] = name
-        
-        if not continents:
-            _LOGGER.error("No continents found in database")
-            return await self.async_step_search()
-        
-        schema = vol.Schema({vol.Required("continent"): vol.In(continents)})
-        return self.async_show_form(step_id="continent", data_schema=schema)
-
-    # ─── Level 2: Country ────────────────────────────────────────
-    async def async_step_country(self, user_input=None):
-        if user_input is not None:
-            self._location_data["country_name"] = user_input["country"]
-            return await self.async_step_region()
-
-        continent_name = self._location_data.get("continent", "")
-        countries = {}
-        for c in (self._db or []):
-            # 使用 'n' 获取洲名，'c' 获取国家列表
-            if c.get("n") == continent_name:
-                for country in c.get("c", []):
-                    name = country.get("n")
-                    if name:
-                        countries[name] = name
-                break
-        schema = vol.Schema({vol.Required("country"): vol.In(countries)})
-        return self.async_show_form(step_id="country", data_schema=schema)
-
-    # ─── Level 3: Region ─────────────────────────────────────────
-    async def async_step_region(self, user_input=None):
-        if user_input is not None:
-            if user_input.get("region") == "__skip__":
-                self._location_data["use_level"] = "country"
-                return await self.async_step_standard()
-            self._location_data["region_name"] = user_input["region"]
-            return await self.async_step_city()
-
-        regions = self._get_regions()
-        if not regions:
-            self._location_data["use_level"] = "country"
-            return await self.async_step_standard()
-
-        opts = {"__skip__": f"使用 {self._location_data.get('country_name', '')} 整体数据"}
-        for r in regions:
-            opts[r["name"]] = r["name"]
-        schema = vol.Schema({vol.Required("region"): vol.In(opts)})
-        return self.async_show_form(step_id="region", data_schema=schema)
-
-    # ─── Level 4: City ───────────────────────────────────────────
-    async def async_step_city(self, user_input=None):
-        if user_input is not None:
-            if user_input.get("city") == "__skip__":
-                self._location_data["use_level"] = "region"
-                return await self.async_step_standard()
-            self._location_data["city_name"] = user_input["city"]
-            return await self.async_step_district()
-
-        cities = self._get_cities()
-        if not cities:
-            self._location_data["use_level"] = "region"
-            return await self.async_step_standard()
-
-        opts = {"__skip__": f"使用 {self._location_data.get('region_name', '')} 整体数据"}
-        for c in cities:
-            opts[c["name"]] = c["name"]
-        schema = vol.Schema({vol.Required("city"): vol.In(opts)})
-        return self.async_show_form(step_id="city", data_schema=schema)
-
-    # ─── Level 5: District ───────────────────────────────────────
-    async def async_step_district(self, user_input=None):
-        if user_input is not None:
-            if user_input.get("district") == "__skip__":
-                self._location_data["use_level"] = "city"
-                return await self.async_step_standard()
-            self._location_data["district_name"] = user_input["district"]
-            return await self.async_step_street()
-
-        districts = self._get_districts()
-        if not districts:
-            self._location_data["use_level"] = "city"
-            return await self.async_step_standard()
-
-        opts = {"__skip__": f"使用 {self._location_data.get('city_name', '')} 整体数据"}
-        for d in districts:
-            opts[d["name"]] = d["name"]
-        schema = vol.Schema({vol.Required("district"): vol.In(opts)})
-        return self.async_show_form(step_id="district", data_schema=schema)
-
-    # ─── Level 6: Street / Community ─────────────────────────────
-    async def async_step_street(self, user_input=None):
-        if user_input is not None:
-            if user_input.get("street") == "__skip__":
-                self._location_data["use_level"] = "district"
-            else:
-                self._location_data["street_name"] = user_input["street"]
-            return await self.async_step_standard()
-
-        streets = self._get_streets()
-        if not streets:
-            # No sub-districts, use district level
-            self._location_data["use_level"] = "district"
-            return await self.async_step_standard()
-
-        opts = {"__skip__": f"使用 {self._location_data.get('district_name', '')} 整体数据"}
-        for s in streets:
-            opts[s["name"]] = s["name"]
-        schema = vol.Schema({vol.Required("street"): vol.In(opts)})
-        return self.async_show_form(step_id="street", data_schema=schema)
-
-    # ─── Standard selection (final step before create_entry) ─────
+    # ─── Step 3：选择 AQI 标准 ────────────────────────────────────
     async def async_step_standard(self, user_input=None):
         if user_input is not None:
             standard = user_input.get("standard", DEFAULT_STANDARD)
@@ -271,139 +122,22 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="standard", data_schema=schema)
 
-    # ─── Data access helpers ─────────────────────────────────────
-    def _get_country_data(self):
-        if not self._db:
-            return None
-        cn = self._location_data.get("continent", "")
-        co = self._location_data.get("country_name", "")
-        for c in self._db:
-            # 使用 'n' 获取洲名，'c' 获取国家列表
-            if c.get("n") == cn:
-                for country in c.get("c", []):
-                    if country.get("n") == co:
-                        return country
-        return None
-
-    def _get_regions(self):
-        country = self._get_country_data()
-        # 使用 'r' 获取地区列表
-        return country.get("r", []) if country else []
-
-    def _get_cities(self):
-        country = self._get_country_data()
-        if not country:
-            return []
-        rn = self._location_data.get("region_name", "")
-        # 遍历地区，找城市
-        for region in country.get("r", []):
-            if region.get("n") == rn:
-                # 使用 'c' 获取城市列表
-                return region.get("c", [])
-        return []
-
-    def _get_districts(self):
-        country = self._get_country_data()
-        if not country:
-            return []
-        rn = self._location_data.get("region_name", "")
-        cn = self._location_data.get("city_name", "")
-        for region in country.get("r", []):
-            if region.get("n") == rn:
-                for city in region.get("c", []):
-                    if city.get("n") == cn:
-                        # 使用 'd' 获取区列表
-                        return city.get("d", [])
-        return []
-
-    def _get_streets(self):
-        """Get streets/communities for the selected district."""
-        country = self._get_country_data()
-        if not country:
-            return []
-        rn = self._location_data.get("region_name", "")
-        cn = self._location_data.get("city_name", "")
-        dn = self._location_data.get("district_name", "")
-        for region in country.get("r", []):
-            if region.get("n") == rn:
-                for city in region.get("c", []):
-                    if city.get("n") == cn:
-                        for district in city.get("d", []):
-                            if district.get("n") == dn:
-                                # 使用 's' 获取街道列表
-                                return district.get("s", [])
-        return []
-
+    # ─── 解析最终 place URL 和显示名称 ───────────────────────────
     def _resolve_place_and_name(self):
-        """Resolve final place URL string and display name from current selection."""
-        # Search path
-        if "search_place" in self._location_data:
-            result = self._location_data["search_place"]
-            url_key = result.get("url_key", "").strip("/")
-            place_id = result.get("place_id", "").strip("/")
-            # 防御：url_key 或 place_id 为空时不拼接多余斜杠
-            if url_key and place_id:
-                place = f"{url_key}/{place_id}"
-            elif url_key:
-                place = url_key
-            elif place_id:
-                place = place_id
-            else:
-                place = ""
-            name = result.get("name", place)
-            return place, name
-
-        # Browse path — walk from deepest to shallowest
-        country = self._get_country_data()
-        if not country:
-            return "", "Unknown"
-
-        street_name = self._location_data.get("street_name")
-        district_name = self._location_data.get("district_name")
-        city_name = self._location_data.get("city_name")
-        region_name = self._location_data.get("region_name")
-        use_level = self._location_data.get("use_level", "")
-
-        ck = country["url_key"]
-
-        # Street level (deepest)
-        if street_name:
-            for region in country.get("regions", []):
-                if region["name"] == region_name:
-                    for city in region.get("cities", []):
-                        if city["name"] == city_name:
-                            for district in city.get("districts", []):
-                                if district["name"] == district_name:
-                                    for street in district.get("streets", []):
-                                        if street["name"] == street_name:
-                                            return f"{ck}/{street['url_key']}/{street['id']}", street_name
-
-        # District level
-        if district_name or use_level == "district":
-            for region in country.get("regions", []):
-                if region["name"] == region_name:
-                    for city in region.get("cities", []):
-                        if city["name"] == city_name:
-                            for district in city.get("districts", []):
-                                if district["name"] == district_name:
-                                    return f"{ck}/{district['url_key']}/{district['id']}", district_name
-
-        # City level
-        if city_name or use_level == "city":
-            for region in country.get("regions", []):
-                if region["name"] == region_name:
-                    for city in region.get("cities", []):
-                        if city["name"] == city_name:
-                            return f"{ck}/{city['url_key']}/{city['id']}", city_name
-
-        # Region level
-        if region_name or use_level == "region":
-            for region in country.get("regions", []):
-                if region["name"] == region_name:
-                    return f"{ck}/{region['url_key']}/{region['id']}", region_name
-
-        # Country level
-        return f"{ck}/{country['id']}", self._location_data.get("country_name", "")
+        """从搜索结果中解析 place 路径和显示名称。"""
+        result = self._selected_place or {}
+        url_key = result.get("url_key", "").strip("/")
+        place_id = result.get("place_id", "").strip("/")
+        if url_key and place_id:
+            place = f"{url_key}/{place_id}"
+        elif url_key:
+            place = url_key
+        elif place_id:
+            place = place_id
+        else:
+            place = ""
+        name = result.get("name", place)
+        return place, name
 
     @staticmethod
     @callback
