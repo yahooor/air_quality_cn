@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "search": {
+        "title": "搜索监测地点",
+        "description": "输入城市、地区或监测站名称进行搜索（支持中英文）",
+        "data": {
+          "query": "地点名称"
+        },
+        "data_description": {
+          "query": "例如：北京、上海、朝阳区、奥体中心"
+        }
+      },
+      "search_select": {
+        "title": "选择地点",
+        "description": "从搜索结果中选择您要监测的地点",
+        "data": {
+          "place_selection": "监测地点"
+        }
+      },
+      "standard": {
+        "title": "选择 AQI 标准",
+        "description": "不同国家/地区使用不同的空气质量指数标准，中国用户推荐使用 AQI（中国标准）",
+        "data": {
+          "standard": "空气质量标准"
+        }
+      }
+    },
+    "error": {
+      "no_results": "未找到匹配地点，请换个关键词再试",
+      "search_failed": "搜索请求失败，请检查网络连接后重试",
+      "invalid_place": "请输入地点名称",
+      "invalid_selection": "请从列表中选择一个地点"
+    },
+    "abort": {
+      "already_configured": "该地点已添加过"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "修改刷新频率",
+        "description": "设置空气质量数据的更新间隔（分钟）",
+        "data": {
+          "scan_interval": "更新间隔（分钟）"
+        }
+      }
+    }
+  }
+}
