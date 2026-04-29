@@ -24,7 +24,7 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 
 ### 手动安装
 
-1. 下载 [air_quality_cn_v2.4.3.zip](https://github.com/yahooor/air_quality_cn/releases/latest)
+1. 下载 [air_quality_cn_v2.4.5.zip](https://github.com/yahooor/air_quality_cn/releases/latest)
 2. 解压到 `custom_components/` 目录
 3. 重启 Home Assistant
 
@@ -49,6 +49,14 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 | pollen_max | 花粉范围最大值（数值，用于历史图表）|
 
 ## 更新日志
+
+### v2.4.5 (2026-04-30)
+- **修复**：选项里找不到"刷新间隔"设置
+- manifest.json 添加 `"options_flow": true`
+
+### v2.4.4 (2026-04-29)
+- **修复**：版本迁移错误 `Migration handler not found`
+- 添加版本迁移函数 `_migrate_entry`
 
 ### v2.4.3 (2026-04-29)
 - **清理**：删除 locations.json（44MB，代码无引用）
