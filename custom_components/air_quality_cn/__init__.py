@@ -35,6 +35,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         )
         return False
 
+    # 已经是最新版本 → 无需操作
+    if old_version == 2 and old_minor == 1:
+        _LOGGER.debug("配置条目 %s 已是最新版本，跳过迁移", config_entry.entry_id)
+        return True
+
     new_data = {**config_entry.data}
 
     # ── 版本 1 → 2：补充缺失字段 ──────────────────────────

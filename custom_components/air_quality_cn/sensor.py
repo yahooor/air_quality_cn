@@ -206,7 +206,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("成功获取网页，长度: %d 字符", len(html))
         data = {}
 
-        _q = r"""['"]"""
+        _QUOTE_RE = r"['\"]"
 
         # ================================================================
         # AQI — 从 JS Gauge() 初始化中提取 value
@@ -246,7 +246,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         #            <div class="name">花粉</div><div class="value">301~500</div>
         # ================================================================
         all_pairs = re.findall(
-            rf"<div class={_q}name{_q}>([^<]+)</div>.*?<div class={_q}value{_q}>([^<]+)</div>",
+            rf"<div class={_QUOTE_RE}name{_QUOTE_RE}>([^<]+)</div>.*?<div class={_QUOTE_RE}value{_QUOTE_RE}>([^<]+)</div>",
             html, re.DOTALL
         )
 
@@ -305,7 +305,8 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # 保留时区信息，让 HA 根据用户系统时区自动转换显示。
         # ================================================================
         update_time = None
-        time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T+Z]+)\s*</div>', html)
+        dt = None
+        time_match = re.search(rf"<div[^>]*class=.*?{_QUOTE_RE}update-time{_QUOTE_RE}.*?[^>]*>\s*([\d\-: T+Z]+)\s*</div>", html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
@@ -329,13 +330,13 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # 天气：温度、湿度、风速
         # 注：部分字段值与单位之间可能有空格或特殊字符
         # ================================================================
-        temp_match = re.search(rf"<div class={_q}temperature{_q}>\s*(-?\d+(?:\.\d+)?)[^<]*</div>", html)
+        temp_match = re.search(rf"<div class={_QUOTE_RE}temperature{_QUOTE_RE}>\s*(-?\d+(?:\.\d+)?)[^<]*</div>", html)
         data["temperature"] = _to_float(temp_match.group(1)) if temp_match else None
 
-        hum_match = re.search(rf"<div class={_q}humidity{_q}>\s*{NUM_PATTERN}\s*%</div>", html)
+        hum_match = re.search(rf"<div class={_QUOTE_RE}humidity{_QUOTE_RE}>\s*{NUM_PATTERN}\s*%</div>", html)
         data["humidity"] = _to_float(hum_match.group(1)) if hum_match else None
 
-        wind_match = re.search(rf"<div class={_q}wind{_q}>\s*{NUM_PATTERN}\s*kph</div>", html)
+        wind_match = re.search(rf"<div class={_QUOTE_RE}wind{_QUOTE_RE}>\s*{NUM_PATTERN}\s*kph</div>", html)
         data["wind_speed"] = _to_float(wind_match.group(1)) if wind_match else None
 
         # ================================================================
@@ -376,7 +377,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # UV 备选：从 HTML 提取（部分页面无 curWeatherData）
         if uv is None:
             # 最大值不固定（各地区 UV 上限不同），不硬编码
-            uv_match = re.search(rf"<div class={_q}uv{_q}>\s*{NUM_PATTERN}\s+of\s+\d+\s*</div>", html)
+            uv_match = re.search(rf"<div class={_QUOTE_RE}uv{_QUOTE_RE}>\s*{NUM_PATTERN}\s+of\s+\d+\s*</div>", html)
             if uv_match:
                 uv = _to_float(uv_match.group(1))
 

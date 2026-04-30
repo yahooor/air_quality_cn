@@ -50,7 +50,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         if resp.status == 200:
                             results = await resp.json(content_type=None)
                             if results:
-                                self._search_results = results[:20]
+                                self._search_results = results[:50]
                                 return await self.async_step_search_select()
                             errors["query"] = "no_results"
                         else:
@@ -92,18 +92,12 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id="search_select",
                 data_schema=vol.Schema({
-                    vol.Required("place_selection"): vol.In(
-                        {str(i): f"{r.get('name', '')} ({r.get('description', '')})"
-                         for i, r in enumerate(self._search_results)}
-                    )
+                    vol.Required("place_selection"): vol.In(self._build_search_options())
                 }),
                 errors={"place_selection": "invalid_selection"},
             )
 
-        options = {
-            str(i): f"{r.get('name', '')} ({r.get('description', '')})"
-            for i, r in enumerate(self._search_results)
-        }
+        options = self._build_search_options()
         schema = vol.Schema({
             vol.Required("place_selection"): vol.In(options),
         })
@@ -128,6 +122,14 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required("standard", default=DEFAULT_STANDARD): vol.In(STANDARDS),
         })
         return self.async_show_form(step_id="standard", data_schema=schema)
+
+    # ─── 构建搜索结果选项 ─────────────────────────────
+    def _build_search_options(self):
+        """构建搜索结果选项列表。"""
+        return {
+            str(i): f"{r.get('name', '')} ({r.get('description', '')})"
+            for i, r in enumerate(self._search_results)
+        }
 
     # ─── 解析最终 place URL 和显示名称 ───────────────────
     def _resolve_place_and_name(self):
