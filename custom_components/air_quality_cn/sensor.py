@@ -84,6 +84,16 @@ POLLEN_TYPES = {
 
 NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 
+# 花粉传感器 key 集合（模块级常量，避免 available 属性每次调用时重复创建）
+POLLEN_KEYS = {
+    "pollen", "pollen_max", "pollen_birch", "pollen_grass",
+    "pollen_alder", "pollen_olive", "pollen_ragweed",
+    "pollen_mugwort", "allergy_risk",
+}
+
+# air-quality.com 默认时区（UTC+8，中国标准时间）
+_CST = timezone(timedelta(hours=8))
+
 
 def _to_float(value, default=None):
     if value is None:
@@ -292,28 +302,27 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # ================================================================
         # 更新时间
         # air-quality.com 页面中 update-time 的时间字符串为中国时区 (UTC+8)。
-        # 为避免时区转换导致显示错误，统一存储为本地时间（不加时区信息），
-        # 让 Home Assistant 自动处理显示。
+        # 保留时区信息，让 HA 根据用户系统时区自动转换显示。
         # ================================================================
         update_time = None
         time_match = re.search(r'<div[^>]*update-time[^>]*>\s*([\d\-: T+Z]+)\s*</div>', html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
-                # 先尝试 ISO 格式
                 dt = datetime.fromisoformat(raw_time)
-                if dt.tzinfo is not None:
-                    # 有时区 → 转换本地时间
-                    dt = dt.astimezone(None)
-                update_time = dt.replace(tzinfo=None)
+                if dt.tzinfo is None:
+                    # 无时区信息 → 默认视为 UTC+8（air-quality.com 中国站）
+                    dt = dt.replace(tzinfo=_CST)
             except ValueError:
                 try:
-                    # 尝试 "%Y-%m-%d %H:%M:%S" 格式
-                    update_time = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
+                    dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
+                    dt = dt.replace(tzinfo=_CST)
                 except Exception:
-                    pass
+                    dt = None
         if not update_time:
-            update_time = datetime.now()
+            update_time = dt
+        if not update_time:
+            update_time = datetime.now(_CST)
         data["update_time"] = update_time
 
         # ================================================================
@@ -412,13 +421,13 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
             if isinstance(value, datetime):
                 # 确保有时区信息供 HA 使用
                 if value.tzinfo is None:
-                    value = value.replace(tzinfo=timezone.utc)
+                    value = value.replace(tzinfo=_CST)
                 return value
             if isinstance(value, str):
                 try:
                     dt = datetime.fromisoformat(value)
                     if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
+                        dt = dt.replace(tzinfo=_CST)
                     return dt
                 except Exception:
                     return None
@@ -430,14 +439,6 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
         if not self.coordinator.last_update_success:
             return False
         # 花粉类传感器在非花粉季时值为 None，属于正常现象，视为"可用但无数据"
-        POLLEN_KEYS = {
-            "pollen", "pollen_max", "pollen_birch", "pollen_grass",
-            "pollen_alder", "pollen_olive", "pollen_ragweed",
-            "pollen_mugwort", "allergy_risk",
-        }
         if self._key in POLLEN_KEYS:
             return True
-        value = self.coordinator.data.get(self._key)
-        if self._key == "update_time":
-            return value is not None
-        return value is not None
+        return self.coordinator.data.get(self._key) is not None
