@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = "2.4.4"
+    VERSION = "2.4.5"
 
     def __init__(self):
         self._search_results = []
