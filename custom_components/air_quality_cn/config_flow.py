@@ -1,9 +1,11 @@
 """
 config_flow.py for air_quality_cn integration
-Supports search-based location lookup only.
+支持搜索式地点查找，3 步完成配置：搜索 → 选择 → AQI 标准
 """
 import voluptuous as vol
 import logging
+from urllib.parse import quote
+
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -23,18 +25,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = "2.4.5"
+    VERSION = 2
+    MINOR_VERSION = 1
 
     def __init__(self):
         self._search_results = []
         self._selected_place = None
 
-    # ─── Entry point：直接进入搜索 ────────────────────────────────
+    # ─── 入口：直接进入搜索 ────────────────────────────────
     async def async_step_user(self, user_input=None):
         """直接进入地点搜索步骤。"""
         return await self.async_step_search()
 
-    # ─── Step 1：输入搜索关键词 ───────────────────────────────────
+    # ─── Step 1：输入搜索关键词 ───────────────────────────
     async def async_step_search(self, user_input=None):
         errors = {}
         if user_input is not None:
@@ -42,7 +45,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if query:
                 session = async_get_clientsession(self.hass)
                 try:
-                    url = f"https://air-quality.com/data/search_places?term={query}&lang=zh-Hans"
+                    url = f"https://air-quality.com/data/search_places?term={quote(query)}&lang=zh-Hans"
                     async with session.get(url, timeout=10) as resp:
                         if resp.status == 200:
                             results = await resp.json(content_type=None)
@@ -53,7 +56,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         else:
                             errors["query"] = "search_failed"
                 except Exception as e:
-                    _LOGGER.error("Search failed: %s", e)
+                    _LOGGER.error("搜索失败: %s", e)
                     errors["query"] = "search_failed"
             else:
                 errors["query"] = "invalid_place"
@@ -70,7 +73,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    # ─── Step 2：从搜索结果中选择地点 ────────────────────────────
+    # ─── Step 2：从搜索结果中选择地点 ────────────────────
     async def async_step_search_select(self, user_input=None):
         if user_input is not None:
             selected = user_input.get("place_selection", "")
@@ -78,6 +81,10 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 idx = int(selected)
                 if 0 <= idx < len(self._search_results):
                     self._selected_place = self._search_results[idx]
+                    # 设置 unique_id 防止重复添加同一地点
+                    place, _ = self._resolve_place_and_name()
+                    await self.async_set_unique_id(f"air_quality_cn_{place}")
+                    self._abort_if_unique_id_configured()
                     return await self.async_step_standard()
             except (ValueError, TypeError):
                 pass
@@ -102,7 +109,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="search_select", data_schema=schema)
 
-    # ─── Step 3：选择 AQI 标准 ────────────────────────────────────
+    # ─── Step 3：选择 AQI 标准 ────────────────────────────
     async def async_step_standard(self, user_input=None):
         if user_input is not None:
             standard = user_input.get("standard", DEFAULT_STANDARD)
@@ -122,7 +129,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="standard", data_schema=schema)
 
-    # ─── 解析最终 place URL 和显示名称 ───────────────────────────
+    # ─── 解析最终 place URL 和显示名称 ───────────────────
     def _resolve_place_and_name(self):
         """从搜索结果中解析 place 路径和显示名称。"""
         result = self._selected_place or {}
