@@ -3,7 +3,7 @@ Air Quality CN - Home Assistant Custom Component
 Supports air-quality.com data for any global location.
 
 Features:
-- 6-level cascade location selection (continent → country → region → city → district → street)
+- Search-based location selection (supports Chinese/English)
 - 8 AQI standards: CN, US, AU, CA, NL, EU, UK, IN
 - 6 pollutants: PM2.5, PM10, O3, NO2, CO, SO2
 - 8 pollen sensors + allergy risk index (available during pollen season)
