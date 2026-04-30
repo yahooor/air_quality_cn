@@ -24,7 +24,7 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 
 ### 手动安装
 
-1. 下载 [air_quality_cn_v2.4.5.zip](https://github.com/yahooor/air_quality_cn/releases/latest)
+1. 下载 [air_quality_cn_v2.4.6.zip](https://github.com/yahooor/air_quality_cn/releases/latest)
 2. 解压到 `custom_components/` 目录
 3. 重启 Home Assistant
 
