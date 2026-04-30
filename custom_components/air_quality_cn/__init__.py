@@ -7,7 +7,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 # 当前版本，用于迁移判断
-CURRENT_VERSION = "2.4.4"
+CURRENT_VERSION = "2.4.5"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 检查是否需要迁移
