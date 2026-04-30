@@ -13,6 +13,7 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 | 🌡️ 天气 | 温度、湿度、风速、风向、紫外线指数 |
 | 🔍 搜索 | 支持中文/英文地点搜索添加 |
 | 🔄 更新 | 可配置刷新间隔 |
+| 🚫 防重复 | 同一地点不可重复添加 |
 
 ## 安装
 
@@ -24,7 +25,7 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 
 ### 手动安装
 
-1. 下载 [air_quality_cn_v2.4.6.zip](https://github.com/yahooor/air_quality_cn/releases/latest)
+1. 下载 [最新版本](https://github.com/yahooor/air_quality_cn/releases/latest)
 2. 解压到 `custom_components/` 目录
 3. 重启 Home Assistant
 
@@ -37,18 +38,34 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 1. **搜索地点**：输入城市、地区或监测站名称（支持中文或英文，如"北京"、"朝阳区"、"奥体中心"）
 2. **选择 AQI 标准**：选择你要使用的空气质量指数标准（中国用户推荐 AQI 中国标准）
 
+### 选项配置
+
+已添加的集成 → 配置 → 可修改刷新间隔（默认 30 分钟）
+
 ## 传感器
 
 | 传感器 | 说明 |
 |--------|------|
 | aqi | 空气质量指数（可配置标准）|
-| air_quality_level | 空气质量等级（优/良/中等/轻度污染等）|
+| air_quality_level | 空气质量等级（优/良/轻度污染/中度污染等）|
 | pm25 / pm10 | 颗粒物（μg/m³）|
 | o3 / no2 / so2 / co | 气态污染物（μg/m³）|
 | pollen | 花粉浓度（原始范围字符串）|
 | pollen_max | 花粉范围最大值（数值，用于历史图表）|
+| pollen_birch / grass / alder / olive / ragweed / mugwort | 各类花粉浓度（粒/m³）|
+| allergy_risk | 过敏风险指数 |
+| temperature / humidity / wind_speed / wind_direction / uv_index | 天气数据 |
 
 ## 更新日志
+
+### v2.5.0 (2026-05-01)
+- **修复**：`ConfigFlow.VERSION` 类型错误（字符串→整数），符合 HA 官方规范
+- **修复**：迁移函数改为 HA 标准 `async_migrate_entry`，彻底解决 `Migration handler not found` 警告
+- **修复**：搜索关键词中文 URL 编码，避免请求失败
+- **修复**：update_time 时区处理，统一使用 UTC+8 时区信息
+- **新增**：同一地点不可重复添加（unique_id 去重）
+- **优化**：POLLEN_KEYS 提取为模块级常量，减少重复创建
+- **清理**：删除 `__pycache__/`、`.backup_redundant/`，新增 `.gitignore`
 
 ### v2.4.5 (2026-04-30)
 - **修复**：选项里找不到"刷新间隔"设置
