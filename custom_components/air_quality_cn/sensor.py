@@ -33,7 +33,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity, UpdateFailed
 
 from .const import DOMAIN, CONF_PLACE, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 
@@ -204,6 +204,18 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             raise
 
         _LOGGER.debug("成功获取网页，长度: %d 字符", len(html))
+
+        # ================================================================
+        # 骨架页检测：无效/过期的 place_id 返回空骨架（1970时间 + 短页面）
+        # 正常页面 > 35000 字符，骨架页约 18000-20000 字符
+        # ================================================================
+        if "1970-01-01" in html and len(html) < 25000:
+            _LOGGER.warning(
+                "检测到骨架页（place_id 可能无效或数据暂时不可用），URL: %s",
+                self.url,
+            )
+            raise UpdateFailed("页面返回骨架数据，place_id 可能已失效")
+
         data = {}
 
         _QUOTE_RE = r"['\"]"
