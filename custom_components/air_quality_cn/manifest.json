@@ -9,6 +9,6 @@
   "documentation": "https://github.com/yahooor/air_quality_cn",
   "iot_class": "cloud_polling",
   "requirements": [],
-  "version": "2.5.2",
+  "version": "2.5.3",
   "issue_tracker": "https://github.com/yahooor/air_quality_cn/issues"
 }
