@@ -9,7 +9,6 @@ Features:
 - 8 pollen sensors + allergy risk index (available during pollen season)
 - Weather: temperature, humidity, wind speed/direction, UV index
 """
-import asyncio
 import json
 import logging
 import re
@@ -86,7 +85,7 @@ NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 
 # 花粉传感器 key 集合（模块级常量，避免 available 属性每次调用时重复创建）
 POLLEN_KEYS = {
-    "pollen", "pollen_max", "pollen_birch", "pollen_grass",
+    "pollen", "pollen_max", "pollen_total", "pollen_birch", "pollen_grass",
     "pollen_alder", "pollen_olive", "pollen_ragweed",
     "pollen_mugwort", "allergy_risk",
 }
@@ -285,26 +284,22 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             elif name in POLLEN_TYPES:
                 sensor_key = POLLEN_TYPES[name]
                 range_m = re.search(r"(\d+)\s*~\s*(\d+)", value)
+                num_m = re.search(NUM_PATTERN, value) if not range_m else None
+
                 if range_m:
-                    val = int(range_m.group(2))      # 范围 → 取最大值
-                    data[sensor_key] = val
-                    # 记录花粉原始字符串和最大值
-                    if sensor_key == "pollen_total" and pollen_raw_str is None:
-                        pollen_raw_str = value
-                        pollen_max_value = val
+                    data[sensor_key] = int(range_m.group(2))
+                elif num_m:
+                    data[sensor_key] = _to_float(num_m.group(1))
                 else:
-                    num_m = re.search(NUM_PATTERN, value)
-                    if num_m:
-                        val = _to_float(num_m.group(1))
-                        data[sensor_key] = val
-                        if sensor_key == "pollen_total" and pollen_raw_str is None:
-                            pollen_raw_str = value
-                            pollen_max_value = val
-                    else:
-                        # 非数值（如"低"/"中"/"高"），存原始字符串
-                        data[sensor_key] = value
-                        if sensor_key == "pollen_total" and pollen_raw_str is None:
-                            pollen_raw_str = value
+                    data[sensor_key] = value
+
+                # 记录总花粉的原始字符串和最大值（仅首次遇到时）
+                if sensor_key == "pollen_total" and pollen_raw_str is None:
+                    pollen_raw_str = value
+                    if range_m:
+                        pollen_max_value = int(range_m.group(2))
+                    elif num_m:
+                        pollen_max_value = _to_float(num_m.group(1))
 
         # pollen: 原始字符串（如 "301~500"），用于显示
         data["pollen"] = pollen_raw_str
@@ -317,24 +312,20 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # 保留时区信息，让 HA 根据用户系统时区自动转换显示。
         # ================================================================
         update_time = None
-        dt = None
         time_match = re.search(rf"<div[^>]*class=.*?{_QUOTE_RE}update-time{_QUOTE_RE}.*?[^>]*>\s*([\d\-: T+Z]+)\s*</div>", html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
-                dt = datetime.fromisoformat(raw_time)
-                if dt.tzinfo is None:
-                    # 无时区信息 → 默认视为 UTC+8（air-quality.com 中国站）
-                    dt = dt.replace(tzinfo=_CST)
+                update_time = datetime.fromisoformat(raw_time)
+                if update_time.tzinfo is None:
+                    update_time = update_time.replace(tzinfo=_CST)
             except ValueError:
                 try:
-                    dt = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
-                    dt = dt.replace(tzinfo=_CST)
+                    update_time = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
+                    update_time = update_time.replace(tzinfo=_CST)
                 except Exception:
-                    dt = None
-        if not update_time:
-            update_time = dt
-        if not update_time:
+                    pass
+        if update_time is None:
             update_time = datetime.now(_CST)
         data["update_time"] = update_time
 
