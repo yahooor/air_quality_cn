@@ -312,7 +312,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # 保留时区信息，让 HA 根据用户系统时区自动转换显示。
         # ================================================================
         update_time = None
-        time_match = re.search(rf"<div[^>]*class=.*?{_QUOTE_RE}update-time{_QUOTE_RE}.*?[^>]*>\s*([\d\-: T+Z]+)\s*</div>", html)
+        time_match = re.search(rf"<div[^>]*class={_QUOTE_RE}update-time{_QUOTE_RE}[^>]*>\s*([\d\-: T+Z]+)\s*</div>", html)
         if time_match:
             raw_time = time_match.group(1).strip()
             try:
@@ -352,30 +352,33 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         start_idx = html.find(start_marker)
         if start_idx != -1:
             json_start = start_idx + len(start_marker)
-            brace_count = 0
-            json_end = -1
-            for i in range(json_start, len(html)):
-                if html[i] == "{":
-                    brace_count += 1
-                elif html[i] == "}":
-                    brace_count -= 1
-                    if brace_count == 0:
-                        json_end = i + 1
-                        break
-            if json_end != -1:
-                json_str = html[json_start:json_end].rstrip(";")
-                try:
-                    weather_data = json.loads(json_str)
-                    if "wind_degrees" in weather_data:
-                        wind_degrees = _to_float(weather_data["wind_degrees"])
-                        if wind_degrees is not None:
-                            idx = round(wind_degrees / 22.5) % 16
-                            wind_direction = WIND_DIRECTIONS[idx]
-                    uv = weather_data.get("UV") or weather_data.get("uv")
-                    if uv is not None:
-                        uv = _to_float(uv)
-                except (json.JSONDecodeError, TypeError):
-                    pass
+            # 跳过空白，检查是否为 null（骨架页返回 null; 而非 JSON 对象）
+            remaining = html[json_start:].lstrip()
+            if not remaining.startswith("null"):
+                brace_count = 0
+                json_end = -1
+                for i in range(json_start, len(html)):
+                    if html[i] == "{":
+                        brace_count += 1
+                    elif html[i] == "}":
+                        brace_count -= 1
+                        if brace_count == 0:
+                            json_end = i + 1
+                            break
+                if json_end != -1:
+                    json_str = html[json_start:json_end].rstrip(";")
+                    try:
+                        weather_data = json.loads(json_str)
+                        if "wind_degrees" in weather_data:
+                            wind_degrees = _to_float(weather_data["wind_degrees"])
+                            if wind_degrees is not None:
+                                idx = round(wind_degrees / 22.5) % 16
+                                wind_direction = WIND_DIRECTIONS[idx]
+                        uv = weather_data.get("UV") or weather_data.get("uv")
+                        if uv is not None:
+                            uv = _to_float(uv)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
 
         # UV 备选：从 HTML 提取（部分页面无 curWeatherData）
         if uv is None:
@@ -389,9 +392,9 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         data["uv_index"] = uv
 
         # ================================================================
-        # 健康警告
+        # 健康警告（排除 update_time，因为回退值为当前时间，不影响判断）
         # ================================================================
-        all_none = all(v is None for v in data.values())
+        all_none = all(v is None for k, v in data.items() if k != "update_time")
         if all_none:
             _LOGGER.warning("所有解析字段均为空，请检查网页结构是否变化。URL: %s", self.url)
 
