@@ -58,6 +58,25 @@ Home Assistant 自定义集成，通过抓取 [air-quality.com](https://air-qual
 
 ## 更新日志
 
+### v2.6.3 (2026-05-07)
+- **优化**：`curWeatherData` 解析前增加 `null` 检查，避免骨架页时遍历整个页面
+- **优化**：`update_time` 正则简化，避免过度匹配
+- **修复**：`all_none` 健康警告排除 `update_time`，使警告在所有数据为空时正确触发
+
+### v2.6.2 (2026-05-07)
+- **修复**：移除 `hacs.json` 中的 `zip_release` 配置，修复 HACS 安装报错 `NoneType object has no attribute 'endswith'`
+
+### v2.6.1 (2026-05-06)
+- **修复**：`hacs.json` 中 `zip_release` 类型错误（字符串→布尔值）
+
+### v2.6.0 (2026-05-06)
+- **优化**：移除未使用的 `import asyncio`
+- **修复**：`POLLEN_KEYS` 中补充缺失的 `pollen_total`
+- **优化**：简化 `update_time` 冗余判断
+- **优化**：合并花粉赋值重复逻辑（3处→1处）
+- **文档**：README 补充 v2.5.1/v2.5.2/v2.5.3 更新日志
+- **配置**：`hacs.json` 添加 `zip_release`
+
 ### v2.5.3 (2026-05-05)
 - **修复**：HACS 商店图标不显示（`brand/icon.png` 需在仓库根目录）
 
