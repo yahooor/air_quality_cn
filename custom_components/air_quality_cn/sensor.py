@@ -99,28 +99,10 @@ WEATHER_ICON_MAP = {
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     place = entry.data[CONF_PLACE]
-    place_id = place.strip("/").split("/")[-1]
     place_name = entry.data.get(CONF_PLACE_NAME, place)
-    standard = entry.options.get(
-        CONF_STANDARD, entry.data.get(CONF_STANDARD, DEFAULT_STANDARD)
-    )
-    try:
-        scan_interval = int(entry.options.get(
-            CONF_SCAN_INTERVAL,
-            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-        ))
-    except (TypeError, ValueError):
-        scan_interval = DEFAULT_SCAN_INTERVAL
 
-    coordinator = AirQualityCoordinator(
-        hass, entry, place, place_id, place_name, standard, scan_interval
-    )
-    hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})["coordinator"] = coordinator
-
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except Exception as e:
-        _LOGGER.error("首次数据刷新失败: %s，仍将创建实体。", e)
+    # coordinator 由集成级 setup 创建（见 __init__.py），两个平台共享
+    coordinator = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})["coordinator"]
 
     # (key, 显示名, 单位, device_class, state_class, icon)
     sensor_defs = [
@@ -262,6 +244,14 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             await self._resolve_coords(session)
 
         if self._lat is not None and self._lon is not None:
+            # 附近数据（天气/首要污染物/预报）：与读数相互独立，失败不阻塞读数
+            try:
+                nearby = await self._nearby_data(session)
+                if nearby:
+                    data.update(nearby)
+            except api.ApiError as e:
+                _LOGGER.info("附近数据接口失败（下次刷新重试）: %s", e)
+
             try:
                 row = await api.fetch_map_row(session, self._lat, self._lon, self.standard, self.place_id)
                 if row is not None:
@@ -269,7 +259,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             except api.ApiError as e:
                 _LOGGER.warning("地图数据接口失败: %s", e)
 
-            if data:
+            if data.get("aqi") is not None:
                 # 历史数据：精确更新时间 + 趋势（失败不致命）
                 try:
                     hist = await api.fetch_history(session, self.place_id, self.standard)
@@ -278,26 +268,22 @@ class AirQualityCoordinator(DataUpdateCoordinator):
                 except api.ApiError as e:
                     _LOGGER.debug("历史数据接口失败: %s", e)
 
-                # 附近数据：天气/首要污染物/预报（带缓存，失败不致命）
-                try:
-                    nearby = await self._nearby_data(session)
-                    data.update(nearby)
-                except api.ApiError as e:
-                    _LOGGER.debug("附近数据接口失败: %s", e)
-
-                if data.get("update_time") is None and data.get("nearby_update_time"):
-                    data["update_time"] = data.pop("nearby_update_time")
+            if data.get("update_time") is None and data.get("nearby_update_time"):
+                data["update_time"] = data.pop("nearby_update_time")
 
         # ── 回退路径：HTML 页面解析 ──────────────────────────
-        if not data:
-            _LOGGER.info("JSON 接口无数据，回退 HTML 页面解析: %s", self.place)
+        # 仅用于补齐 AQI/污染物读数；已有字段（天气/预报等）不被覆盖
+        if data.get("aqi") is None:
+            _LOGGER.info("JSON 读数缺失，回退 HTML 页面解析补齐: %s", self.place)
             try:
                 html = await api.fetch_html(session, self.place, self.standard)
-                data = api.parse_html(html)
+                fallback = api.parse_html(html)
             except api.SkeletonPageError as e:
                 raise UpdateFailed(str(e)) from e
             except api.ApiError as e:
                 raise UpdateFailed(str(e)) from e
+            for key, value in fallback.items():
+                data.setdefault(key, value)
 
         if not data:
             raise UpdateFailed("未获取到任何数据")

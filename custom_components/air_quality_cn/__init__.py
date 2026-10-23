@@ -8,7 +8,16 @@ from homeassistant.core import HomeAssistant
 # 在此处一并导入各平台可避免 async_forward_entry_setups 在事件循环内做磁盘导入
 from . import sensor as _sensor  # noqa: F401  预导入，见上
 from . import weather as _weather  # noqa: F401  预导入，见上
-from .const import DOMAIN, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL
+from .const import (
+    DOMAIN,
+    CONF_PLACE,
+    CONF_PLACE_NAME,
+    CONF_STANDARD,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_STANDARD,
+    DEFAULT_SCAN_INTERVAL,
+)
+from .sensor import AirQualityCoordinator
 
 PLATFORMS = ["sensor", "weather"]
 
@@ -17,6 +26,32 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
+
+    # coordinator 在集成级创建，sensor/weather 两平台共享，避免平台加载竞态
+    place = entry.data[CONF_PLACE]
+    place_id = place.strip("/").split("/")[-1]
+    place_name = entry.data.get(CONF_PLACE_NAME, place)
+    standard = entry.options.get(
+        CONF_STANDARD, entry.data.get(CONF_STANDARD, DEFAULT_STANDARD)
+    )
+    try:
+        scan_interval = int(entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        ))
+    except (TypeError, ValueError):
+        scan_interval = DEFAULT_SCAN_INTERVAL
+
+    coordinator = AirQualityCoordinator(
+        hass, entry, place, place_id, place_name, standard, scan_interval
+    )
+    hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
+
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as e:
+        _LOGGER.error("首次数据刷新失败: %s，仍将创建实体。", e)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
