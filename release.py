@@ -164,6 +164,36 @@ def check_git_clean():
     return True
 
 
+def check_local_pushed():
+    """检查本地 main 是否已推送到远程。
+
+    sync_local 会 reset --hard origin/main，若本地存在未推送提交会被丢弃，
+    因此发布前必须确保本地与远程一致。
+    """
+    try:
+        subprocess.run(
+            ["git", "fetch", "origin", BRANCH],
+            capture_output=True, timeout=60, check=True,
+        )
+        local = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, timeout=5, check=True,
+        ).stdout.strip()
+        remote = subprocess.run(
+            ["git", "rev-parse", f"origin/{BRANCH}"],
+            capture_output=True, text=True, timeout=5, check=True,
+        ).stdout.strip()
+    except Exception as e:
+        warn(f"无法比对本地/远程 HEAD（跳过检查）: {e}")
+        return True
+    if local != remote:
+        fail(f"本地 {BRANCH} 与远程不一致（存在未推送提交），请先执行:")
+        print(f"  git push origin {BRANCH}")
+        print(f"  否则 sync_local 的 reset --hard 会丢弃这些提交")
+        return False
+    return True
+
+
 def check_remote_tag(tag_name, token):
     """检查远程是否已存在同名 tag"""
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/git/ref/tags/{tag_name}"
@@ -465,6 +495,12 @@ def main():
     if not check_git_clean():
         sys.exit(1)
     ok("工作区干净")
+
+    # 本地提交已推送
+    info("检查本地提交是否已推送...")
+    if not check_local_pushed():
+        sys.exit(1)
+    ok("本地与远程一致")
 
     # 远程 tag
     info(f"检查远程 tag {tag_name}...")
