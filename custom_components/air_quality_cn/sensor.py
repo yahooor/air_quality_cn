@@ -114,7 +114,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("pm10",            "PM10",                         UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
         ("o3",              "臭氧 O3",                      UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.OZONE,            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
         ("no2",             "二氧化氮 NO2",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.NITROGEN_DIOXIDE, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co",              "一氧化碳 CO",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.CARBON_MONOXIDE,  SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("co",              "一氧化碳 CO",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, None,                               SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
         ("so2",             "二氧化硫 SO2",                  UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.SULPHUR_DIOXIDE,  SensorStateClass.MEASUREMENT, "mdi:smog"),
         # 花粉（花粉季之外均为 None，属正常）
         ("pollen",          "花粉浓度",                      None,                                     None,                               None,                         "mdi:flower-pollen"),
