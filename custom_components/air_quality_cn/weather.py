@@ -105,6 +105,16 @@ class AirQualityWeather(CoordinatorEntity, WeatherEntity):
     def native_precipitation_unit(self) -> str:
         return "mm"
 
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data or {}
+        return {
+            "forecast_daily_count": len(data.get("wf_daily") or []),
+            "forecast_hourly_count": len(data.get("wf_hourly") or []),
+            "data_fields": len(data),
+            "nearby_success": bool(data.get("primary_pollutant") or data.get("temperature") is not None),
+        }
+
     async def async_forecast_daily(self) -> list[Forecast] | None:
         return (self.coordinator.data or {}).get("wf_daily") or None
 
