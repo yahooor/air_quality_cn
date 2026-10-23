@@ -231,7 +231,9 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             return cached
         payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
         parsed = api.parse_nearby(payload)
-        parsed.update(api.parse_weather_forecast(payload))
+        wf = api.parse_weather_forecast(payload)
+        parsed["wf_hourly"] = wf.get("hourly") or []
+        parsed["wf_daily"] = wf.get("daily") or []
         self._nearby_cache = (now, parsed)
         return parsed
 
