@@ -1,0 +1,423 @@
+{
+ "success": true,
+ "data": {
+  "map": [
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "过敏风险指数",
+       "type": "allergy",
+       "kind": "ar",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.06776785714285714,
+       "value": "24"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.06776785714285714,
+       "value": "75.9",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.021714285714285714,
+       "value": "15.2",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.015313852857142858,
+       "value": "5.4",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.012244897959183673,
+       "value": "3",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.0004962857142857143,
+       "value": "0.5",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "草",
+       "type": "allergy",
+       "kind": "poac",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "桤木",
+       "type": "allergy",
+       "kind": "alnu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "豚草",
+       "type": "allergy",
+       "kind": "ambr",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "艾蒿",
+       "type": "allergy",
+       "kind": "arte",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "桦木",
+       "type": "allergy",
+       "kind": "betu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "橄榄树",
+       "type": "allergy",
+       "kind": "olea",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      }
+     ]
+    },
+    "place": {
+     "lat": 47.359536,
+     "lon": 8.6356452,
+     "name": "苏黎世",
+     "place_id": "4686dc2b",
+     "type": "administrative_area_level_1",
+     "description": "瑞士",
+     "region_lat_min": 47.2053892,
+     "region_lat_max": 47.670846,
+     "region_lon_min": 8.394824,
+     "region_lon_max": 8.8808183,
+     "crowdsource": 0,
+     "url_key": "switzerland/zurich",
+     "parent": {
+      "lat": 46.818188,
+      "lon": 8.227512,
+      "name": "瑞士",
+      "place_id": "0b945551",
+      "type": "country",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "过敏风险指数",
+       "type": "allergy",
+       "kind": "ar",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.017142857142857144,
+       "value": "6"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.017142857142857144,
+       "value": "6",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.012244897959183673,
+       "value": "3",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "草",
+       "type": "allergy",
+       "kind": "poac",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "桤木",
+       "type": "allergy",
+       "kind": "alnu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "豚草",
+       "type": "allergy",
+       "kind": "ambr",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "艾蒿",
+       "type": "allergy",
+       "kind": "arte",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "桦木",
+       "type": "allergy",
+       "kind": "betu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "橄榄树",
+       "type": "allergy",
+       "kind": "olea",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      }
+     ]
+    },
+    "place": {
+     "lat": 47.4082721,
+     "lon": 8.7727086,
+     "name": "普费菲孔",
+     "place_id": "538f139c",
+     "type": "administrative_area_level_2",
+     "description": "瑞士",
+     "region_lat_min": 47.364,
+     "region_lat_max": 47.443495,
+     "region_lon_min": 8.671912599999999,
+     "region_lon_max": 8.8808183,
+     "crowdsource": 0,
+     "url_key": "switzerland/pfäffikon-district",
+     "parent": {
+      "lat": 47.359536,
+      "lon": 8.6356452,
+      "name": "苏黎世",
+      "place_id": "4686dc2b",
+      "type": "administrative_area_level_1",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "过敏风险指数",
+       "type": "allergy",
+       "kind": "ar",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.0642857142857143,
+       "value": "23"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.0642857142857143,
+       "value": "72",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.02,
+       "value": "14",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.017142857142857144,
+       "value": "6",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.012244897959183673,
+       "value": "3",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "草",
+       "type": "allergy",
+       "kind": "poac",
+       "color": "#2b61c4",
+       "level": "低",
+       "ratio": 0.25,
+       "value": "3.0"
+      },
+      {
+       "name": "桤木",
+       "type": "allergy",
+       "kind": "alnu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "豚草",
+       "type": "allergy",
+       "kind": "ambr",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "艾蒿",
+       "type": "allergy",
+       "kind": "arte",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "桦木",
+       "type": "allergy",
+       "kind": "betu",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      },
+      {
+       "name": "橄榄树",
+       "type": "allergy",
+       "kind": "olea",
+       "color": "#2b61c4",
+       "level": "无",
+       "ratio": 0,
+       "value": "0"
+      }
+     ]
+    },
+    "place": {
+     "lat": 47.4854578,
+     "lon": 8.7966515,
+     "name": "温特图尔",
+     "place_id": "6086007b",
+     "type": "administrative_area_level_2",
+     "description": "瑞士",
+     "region_lat_min": 47.48,
+     "region_lat_max": 47.530966,
+     "region_lon_min": 8.68,
+     "region_lon_max": 8.7966515,
+     "crowdsource": 0,
+     "url_key": "switzerland/winterthur-district",
+     "parent": {
+      "lat": 47.359536,
+      "lon": 8.6356452,
+      "name": "苏黎世",
+      "place_id": "4686dc2b",
+      "type": "administrative_area_level_1",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   }
+  ]
+ }
+}

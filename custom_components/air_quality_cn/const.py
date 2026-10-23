@@ -8,6 +8,8 @@ CONF_PLACE = "place"
 CONF_PLACE_NAME = "place_name"
 CONF_STANDARD = "standard"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_LAT = "lat"
+CONF_LON = "lon"
 
 STANDARDS = {
     "aqi_cn": "AQI (中国标准)",

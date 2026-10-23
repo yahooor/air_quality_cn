@@ -1,0 +1,502 @@
+{
+ "success": true,
+ "data": {
+  "map": [
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.31428571428571433,
+       "value": "110"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.31428571428571433,
+       "value": "71",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#d9d726",
+       "level": "良",
+       "ratio": 0.24081632653061225,
+       "value": "98",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.058571428571428566,
+       "value": "41",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "CO",
+       "type": "pollutant",
+       "kind": "co",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.022857142857142857,
+       "value": "800",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.019642857142857146,
+       "value": "22",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.002857142857142857,
+       "value": "3",
+       "unit": "μg/m³"
+      }
+     ]
+    },
+    "place": {
+     "lat": 39.904211,
+     "lon": 116.407395,
+     "name": "北京",
+     "place_id": "8733f5dd",
+     "type": "administrative_area_level_1",
+     "description": "中国大陆",
+     "region_lat_min": 39.52,
+     "region_lat_max": 40.652,
+     "region_lon_min": 115.9423,
+     "region_lon_max": 117.121383,
+     "crowdsource": 0,
+     "url_key": "china/beijing",
+     "parent": {
+      "lat": 35.86166,
+      "lon": 104.195397,
+      "name": "中国大陆",
+      "place_id": "ce4c01d6",
+      "type": "country",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.31428571428571433,
+       "value": "110"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.31428571428571433,
+       "value": "71",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#d9d726",
+       "level": "良",
+       "ratio": 0.24081632653061225,
+       "value": "98",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.058571428571428566,
+       "value": "41",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "CO",
+       "type": "pollutant",
+       "kind": "co",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.022857142857142857,
+       "value": "800",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.019642857142857146,
+       "value": "22",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.002857142857142857,
+       "value": "3",
+       "unit": "μg/m³"
+      }
+     ]
+    },
+    "place": {
+     "lat": 39.906214,
+     "lon": 116.3977,
+     "name": "北京",
+     "place_id": "ec8399ca",
+     "type": "locality",
+     "description": "北京, 中国大陆",
+     "region_lat_min": 39.52,
+     "region_lat_max": 40.652,
+     "region_lon_min": 115.9423,
+     "region_lon_max": 117.121383,
+     "crowdsource": 0,
+     "url_key": "china/beijing",
+     "parent": {
+      "lat": 39.904211,
+      "lon": 116.407395,
+      "name": "北京",
+      "place_id": "8733f5dd",
+      "type": "administrative_area_level_1",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.29610388571428575,
+       "value": "104"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.2961038961038961,
+       "value": "64",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#d9d726",
+       "level": "良",
+       "ratio": 0.236734693877551,
+       "value": "96",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.06785714285714285,
+       "value": "47.5",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.024553571428571428,
+       "value": "27.5",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "CO",
+       "type": "pollutant",
+       "kind": "co",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.02142857142857143,
+       "value": "750",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.002857142857142857,
+       "value": "3",
+       "unit": "μg/m³"
+      }
+     ]
+    },
+    "place": {
+     "lat": 39.928353,
+     "lon": 116.416357,
+     "name": "东城区",
+     "place_id": "7319628a",
+     "type": "sublocality",
+     "description": "北京, 中国大陆",
+     "region_lat_min": 39.886,
+     "region_lat_max": 39.93,
+     "region_lon_min": 116.407,
+     "region_lon_max": 116.432,
+     "crowdsource": 0,
+     "url_key": "china/dongcheng",
+     "parent": {
+      "lat": 39.906214,
+      "lon": 116.3977,
+      "name": "北京",
+      "place_id": "ec8399ca",
+      "type": "locality",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.2942857142857143,
+       "value": "103"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.29350649350649355,
+       "value": "63",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#d9d726",
+       "level": "良",
+       "ratio": 0.20816326530612245,
+       "value": "82",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.06857142857142857,
+       "value": "48",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "CO",
+       "type": "pollutant",
+       "kind": "co",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.022857142857142857,
+       "value": "800",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.015178571428571428,
+       "value": "17",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.001904761904761905,
+       "value": "2",
+       "unit": "μg/m³"
+      }
+     ]
+    },
+    "place": {
+     "lat": 39.886,
+     "lon": 116.407,
+     "name": "天坛",
+     "place_id": "07b2ebf1",
+     "type": "station",
+     "description": "北京, 中国大陆",
+     "region_lat_min": 39.886,
+     "region_lat_max": 39.886,
+     "region_lon_min": 116.407,
+     "region_lon_max": 116.407,
+     "crowdsource": 0,
+     "url_key": "china/tiantan",
+     "parent": {
+      "lat": 39.928353,
+      "lon": 116.416357,
+      "name": "东城区",
+      "place_id": "7319628a",
+      "type": "sublocality_level_1",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   },
+   {
+    "latest": {
+     "readings": [
+      {
+       "name": "AQI",
+       "type": "index",
+       "kind": "aqi",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.3,
+       "value": "105"
+      },
+      {
+       "name": "PM2.5",
+       "type": "pollutant",
+       "kind": "pm25",
+       "color": "#ff7e00",
+       "level": "轻度污染",
+       "ratio": 0.2987012987012987,
+       "value": "65",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "PM10",
+       "type": "pollutant",
+       "kind": "pm10",
+       "color": "#d9d726",
+       "level": "良",
+       "ratio": 0.2653061224489796,
+       "value": "110",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "NO2",
+       "type": "pollutant",
+       "kind": "no2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.06714285714285714,
+       "value": "47",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "O3",
+       "type": "pollutant",
+       "kind": "o3",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.033928571428571426,
+       "value": "38",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "CO",
+       "type": "pollutant",
+       "kind": "co",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.02,
+       "value": "700",
+       "unit": "μg/m³"
+      },
+      {
+       "name": "SO2",
+       "type": "pollutant",
+       "kind": "so2",
+       "color": "#00E400",
+       "level": "优",
+       "ratio": 0.00380952380952381,
+       "value": "4",
+       "unit": "μg/m³"
+      }
+     ]
+    },
+    "place": {
+     "lat": 39.929,
+     "lon": 116.417,
+     "name": "东四",
+     "place_id": "6ad84d7c",
+     "type": "station",
+     "description": "北京, 中国大陆",
+     "region_lat_min": 39.929,
+     "region_lat_max": 39.929,
+     "region_lon_min": 116.417,
+     "region_lon_max": 116.417,
+     "crowdsource": 0,
+     "url_key": "china/dongsi",
+     "parent": {
+      "lat": 39.928353,
+      "lon": 116.416357,
+      "name": "东城区",
+      "place_id": "7319628a",
+      "type": "sublocality_level_1",
+      "crowdsource": 0,
+      "url_key": ""
+     }
+    },
+    "map_point_mode": "normal"
+   }
+  ]
+ }
+}

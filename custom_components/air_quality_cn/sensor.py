@@ -1,20 +1,13 @@
 """
-Air Quality CN - Home Assistant Custom Component
-Supports air-quality.com data for any global location.
+Air Quality CN - Home Assistant 自定义集成
+通过 air-quality.com 获取全球空气质量数据。
 
-Features:
-- Search-based location selection (supports Chinese/English)
-- 8 AQI standards: CN, US, AU, CA, NL, EU, UK, IN
-- 6 pollutants: PM2.5, PM10, O3, NO2, CO, SO2
-- 8 pollen sensors + allergy risk index (available during pollen season)
-- Weather: temperature, humidity, wind speed/direction, UV index
+数据获取优先走站点 JSON 接口（读数/等级/花粉/历史/天气/预报），
+接口异常时自动回退到 HTML 页面解析。
 """
-import json
 import logging
-import re
-from datetime import datetime, timezone, timedelta
-
-import aiohttp
+import time
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -26,117 +19,80 @@ from homeassistant.const import (
     UnitOfTemperature,
     PERCENTAGE,
     UnitOfSpeed,
+    UnitOfUVIndex,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     DEGREE,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    CoordinatorEntity,
+    UpdateFailed,
+)
 
-from .const import DOMAIN, CONF_PLACE, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from . import api
+from .const import (
+    DOMAIN,
+    CONF_PLACE,
+    CONF_PLACE_NAME,
+    CONF_STANDARD,
+    CONF_SCAN_INTERVAL,
+    CONF_LAT,
+    CONF_LON,
+    DEFAULT_STANDARD,
+    DEFAULT_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-# 污染物名称
-POLLUTANT_NAMES = ["PM2.5", "PM10", "O3", "NO2", "CO", "SO2"]
+# 附近数据（天气/预报/首要污染物）缓存时长（秒）
+NEARBY_CACHE_TTL = 3 * 3600
 
-# 风向索引（0-360° 每 22.5° 一个方向）
-WIND_DIRECTIONS = [
-    "北", "北东北", "东北", "东东北", "东", "东东南", "东南", "南东南",
-    "南", "南西南", "西南", "西西南", "西", "西西北", "西北", "北西北",
-]
-
-# 花粉类型映射：HTML 中的 name → sensor key
-# 注意：Python dict 不允许重复 key，重复 key 会被后者覆盖，务必保证每个 key 唯一
-POLLEN_TYPES = {
-    # 总花粉
-    "花粉": "pollen_total",
-    # 桦木花粉
-    "桦木花粉": "pollen_birch",
-    "桦树花粉": "pollen_birch",
-    # 草花粉
-    "草花粉": "pollen_grass",
-    "禾草花粉": "pollen_grass",
-    # 桤木花粉（alder）—— 与桦木是不同树种，勿混淆
-    "桤木": "pollen_alder",
-    "桤木花粉": "pollen_alder",
-    "艾桤木": "pollen_alder",
-    "艾桤木花粉": "pollen_alder",
-    # 橄榄树花粉
-    "橄榄树花粉": "pollen_olive",
-    "橄榄花粉": "pollen_olive",
-    # 豚草花粉
-    "豚草花粉": "pollen_ragweed",
-    "豚草": "pollen_ragweed",
-    # 艾蒿花粉
-    "艾蒿花粉": "pollen_mugwort",
-    "艾蒿": "pollen_mugwort",
-    "艾草花粉": "pollen_mugwort",
-    "艾草": "pollen_mugwort",
-    # 野草花粉（单独作为 ragweed 的备选，不再同时映射到 grass）
-    "野草花粉": "pollen_ragweed",
-    # 过敏风险
-    "过敏风险指数": "allergy_risk",
-    "过敏风险": "allergy_risk",
-}
-
-NUM_PATTERN = r"(\d+(?:\.\d+)?)"
-
-# 花粉传感器 key 集合（模块级常量，避免 available 属性每次调用时重复创建）
+# 花粉传感器 key 集合（非花粉季值为 None 属正常，视为"可用但无数据"）
 POLLEN_KEYS = {
     "pollen", "pollen_max", "pollen_total", "pollen_birch", "pollen_grass",
     "pollen_alder", "pollen_olive", "pollen_ragweed",
     "pollen_mugwort", "allergy_risk",
 }
 
-# air-quality.com 默认时区（UTC+8，中国标准时间）
-_CST = timezone(timedelta(hours=8))
-
-
-def _to_float(value, default=None):
-    if value is None:
-        return default
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-
-def _to_int(value, default=None):
-    if value is None:
-        return default
-    try:
-        return int(float(value))
-    except (ValueError, TypeError):
-        return default
-
-
-def _build_url(place, standard):
-    """Build the full URL from place string and standard.
-    Place formats:
-    - 'china/haidian/7d638731'  -> /place/china/haidian/7d638731
-    - 'china//7d638731'         -> /place/china//7d638731 (district, no city name)
-    - 'japan/48e5965c'          -> /country/japan/48e5965c (country-level, 2 segments)
-    """
-    parts = place.strip("/").split("/")
-    if len(parts) == 2:
-        return f"https://air-quality.com/country/{place}?lang=zh-Hans&standard={standard}"
-    else:
-        return f"https://air-quality.com/place/{place}?lang=zh-Hans&standard={standard}"
+# 天气图标代码 → mdi
+WEATHER_ICON_MAP = {
+    "clear": "mdi:weather-sunny",
+    "nt_clear": "mdi:weather-night-clear",
+    "partly_cloudy": "mdi:weather-partly-cloudy",
+    "nt_partly_cloudy": "mdi:weather-night-partly-cloudy",
+    "cloudy": "mdi:weather-cloudy",
+    "overcast": "mdi:weather-cloudy",
+    "rain": "mdi:weather-rainy",
+    "light_rain": "mdi:weather-rainy",
+    "heavy_rain": "mdi:weather-pouring",
+    "snow": "mdi:weather-snowy",
+    "sleet": "mdi:weather-snowy-rain",
+    "fog": "mdi:weather-fog",
+    "mist": "mdi:weather-fog",
+    "haze": "mdi:weather-hazy",
+    "thunderstorm": "mdi:weather-lightning",
+    "wind": "mdi:weather-windy",
+}
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     place = entry.data[CONF_PLACE]
-    standard = entry.data.get(CONF_STANDARD, "aqi_cn")
+    place_id = place.strip("/").split("/")[-1]
     place_name = entry.data.get(CONF_PLACE_NAME, place)
+    standard = entry.options.get(
+        CONF_STANDARD, entry.data.get(CONF_STANDARD, DEFAULT_STANDARD)
+    )
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL,
         entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
 
-    url = _build_url(place, standard)
-    coordinator = AirQualityCoordinator(hass, url, scan_interval)
+    coordinator = AirQualityCoordinator(
+        hass, entry, place, place_id, place_name, standard, scan_interval
+    )
 
     try:
         await coordinator.async_config_entry_first_refresh()
@@ -145,47 +101,59 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     # (key, 显示名, 单位, device_class, state_class, icon)
     sensor_defs = [
-        ("aqi",             "AQI",                         None,                                      SensorDeviceClass.AQI,              SensorStateClass.MEASUREMENT, "mdi:air-filter"),
-        ("level",           "空气质量等级",                  None,                                      None,                               None,                         "mdi:numeric"),
-        ("pm25",            "PM2.5",                        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("pm10",            "PM10",                         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("o3",              "臭氧 O3",                      CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("no2",             "二氧化氮 NO2",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co",              "一氧化碳 CO",                    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
-        ("so2",             "二氧化硫 SO2",                  CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,  None,                               SensorStateClass.MEASUREMENT, "mdi:smog"),
+        ("aqi",             "AQI",                         None,                                     SensorDeviceClass.AQI,              SensorStateClass.MEASUREMENT, "mdi:air-filter"),
+        ("level",           "空气质量等级",                  None,                                     None,                               None,                         "mdi:numeric"),
+        ("primary_pollutant", "首要污染物",                  None,                                     None,                               None,                         "mdi:filter-variant"),
+        ("aqi_trend",       "24小时AQI趋势",                 None,                                     None,                               None,                         "mdi:trending-neutral"),
+        ("pm25",            "PM2.5",                        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("pm10",            "PM10",                         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("o3",              "臭氧 O3",                      CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.OZONE,            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("no2",             "二氧化氮 NO2",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.NITROGEN_DIOXIDE, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("co",              "一氧化碳 CO",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.CARBON_MONOXIDE,  SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("so2",             "二氧化硫 SO2",                  CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.SULPHUR_DIOXIDE,  SensorStateClass.MEASUREMENT, "mdi:smog"),
         # 花粉（花粉季之外均为 None，属正常）
-        ("pollen",          "花粉浓度",                      None,                                      None,                               None,                         "mdi:flower-pollen"),
-        ("pollen_max",      "花粉浓度范围最大值",             None,                                  None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
+        ("pollen",          "花粉浓度",                      None,                                     None,                               None,                         "mdi:flower-pollen"),
+        ("pollen_max",      "花粉浓度范围最大值",             None,                                     None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
         ("pollen_birch",    "桦木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:sprout"),
         ("pollen_grass",    "草花粉",                        "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:grass"),
         ("pollen_alder",    "桤木花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:flower"),
         ("pollen_olive",    "橄榄树花粉",                    "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:tree"),
         ("pollen_ragweed",  "豚草花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:weed"),
         ("pollen_mugwort",  "艾蒿花粉",                      "粒/m³",                                  None,                               SensorStateClass.MEASUREMENT, "mdi:flower-tulip"),
-        ("allergy_risk",   "过敏风险指数",                  None,                                      None,                               SensorStateClass.MEASUREMENT, "mdi:allergy"),
+        ("allergy_risk",    "过敏风险指数",                  None,                                     None,                               SensorStateClass.MEASUREMENT, "mdi:allergy"),
         # 天气
-        ("temperature",     "温度",                          UnitOfTemperature.CELSIUS,                 SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer"),
-        ("humidity",        "湿度",                          PERCENTAGE,                                SensorDeviceClass.HUMIDITY,         SensorStateClass.MEASUREMENT, "mdi:water-percent"),
-        ("wind_speed",      "风速",                          UnitOfSpeed.KILOMETERS_PER_HOUR,           SensorDeviceClass.WIND_SPEED,      SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
-        ("wind_direction",  "风向",                          None,                                      None,                               None,                         "mdi:compass"),
-        ("wind_degrees",    "风向角度",                      DEGREE,                                    None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
-        ("uv_index",        "紫外线指数",                    "UVI",                                     None,                               SensorStateClass.MEASUREMENT, "mdi:sunglasses"),
-        ("update_time",     "数据更新时间",                  None,                                      SensorDeviceClass.TIMESTAMP,        None,                         "mdi:clock"),
+        ("weather_condition", "天气状况",                    None,                                     None,                               None,                         "mdi:weather-cloudy"),
+        ("temperature",     "温度",                          UnitOfTemperature.CELSIUS,                SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+        ("feel_like",       "体感温度",                      UnitOfTemperature.CELSIUS,                SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
+        ("humidity",        "湿度",                          PERCENTAGE,                               SensorDeviceClass.HUMIDITY,         SensorStateClass.MEASUREMENT, "mdi:water-percent"),
+        ("wind_speed",      "风速",                          UnitOfSpeed.KILOMETERS_PER_HOUR,          SensorDeviceClass.WIND_SPEED,       SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
+        ("wind_direction",  "风向",                          None,                                     None,                               None,                         "mdi:compass"),
+        ("wind_degrees",    "风向角度",                      DEGREE,                                   None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
+        ("uv_index",        "紫外线指数",                    UnitOfUVIndex.UV_INDEX,                   SensorDeviceClass.UV_INDEX,         SensorStateClass.MEASUREMENT, "mdi:weather-sunny"),
+        ("update_time",     "数据更新时间",                  None,                                     SensorDeviceClass.TIMESTAMP,        None,                         "mdi:clock"),
     ]
 
-    entities = []
-    for key, name, unit, device_class, state_class, icon in sensor_defs:
-        entities.append(
-            AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place, place_name)
-        )
-
+    entities = [
+        AirQualitySensor(coordinator, key, name, unit, device_class, state_class, icon, place, place_name)
+        for key, name, unit, device_class, state_class, icon in sensor_defs
+    ]
     async_add_entities(entities)
     _LOGGER.info("已创建 %d 个传感器, 地点: %s", len(entities), place_name)
 
 
 class AirQualityCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, url, scan_interval):
-        self.url = url
+    """JSON 接口主路径 + HTML 回退的数据协调器。"""
+
+    def __init__(self, hass, entry, place, place_id, place_name, standard, scan_interval):
+        self.place = place
+        self.place_id = place_id
+        self.place_name = place_name
+        self.standard = standard
+        self._entry_id = entry.entry_id
+        store = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
+        self._lat = entry.data.get(CONF_LAT) or store.get("lat")
+        self._lon = entry.data.get(CONF_LON) or store.get("lon")
+        self._nearby_cache = (0.0, {})
         super().__init__(
             hass,
             _LOGGER,
@@ -193,210 +161,85 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=scan_interval),
         )
 
+    async def _resolve_coords(self, session):
+        """旧配置条目缺坐标：按 place_name 搜索并精确匹配 place_id。"""
+        store = self.hass.data.setdefault(DOMAIN, {}).setdefault(self._entry_id, {})
+        if store.get("lat"):
+            self._lat, self._lon = store["lat"], store["lon"]
+            return
+        try:
+            lat, lon = await api.resolve_coords(session, self.place_id, self.place_name)
+        except api.ApiError as e:
+            _LOGGER.warning("坐标解析失败（本次使用 HTML 回退）: %s", e)
+            return
+        if lat is not None and lon is not None:
+            self._lat, self._lon = lat, lon
+            store.update({"lat": lat, "lon": lon})
+            _LOGGER.info("已解析地点 %s 坐标: (%s, %s)", self.place_name, lat, lon)
+
+    async def _nearby_data(self, session):
+        """附近数据（天气/预报/首要污染物），带 TTL 缓存。"""
+        ts, cached = self._nearby_cache
+        now = time.monotonic()
+        if now - ts < NEARBY_CACHE_TTL:
+            return cached
+        payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
+        parsed = api.parse_nearby(payload)
+        self._nearby_cache = (now, parsed)
+        return parsed
+
     async def _async_update_data(self):
         session = async_get_clientsession(self.hass)
-        try:
-            async with session.get(self.url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-                html = await resp.text()
-        except Exception as e:
-            _LOGGER.error("请求失败: %s", e)
-            raise
-
-        _LOGGER.debug("成功获取网页，长度: %d 字符", len(html))
-
-        # ================================================================
-        # 骨架页检测：无效/过期的 place_id 返回空骨架（1970时间 + 短页面）
-        # 正常页面 > 35000 字符，骨架页约 18000-20000 字符
-        # ================================================================
-        if "1970-01-01" in html and len(html) < 25000:
-            _LOGGER.warning(
-                "检测到骨架页（place_id 可能无效或数据暂时不可用），URL: %s",
-                self.url,
-            )
-            raise UpdateFailed("页面返回骨架数据，place_id 可能已失效")
-
         data = {}
 
-        _QUOTE_RE = r"['\"]"
+        # ── 主路径：JSON 接口 ────────────────────────────────
+        if self._lat is None or self._lon is None:
+            await self._resolve_coords(session)
 
-        # ================================================================
-        # AQI — 从 JS Gauge() 初始化中提取 value
-        # 格式: Gauge({ value: 58, ... })
-        # ================================================================
-        aqi_match = re.search(r"Gauge\([\s\S]+?value:\s*(\d+)\s*\}", html)
-        if not aqi_match:
-            aqi_match = re.search(
-                r"AQI \((?:中国|中国香港|美国|澳大利亚|加拿大|英国|欧盟|法国|德国|意大利|西班牙|荷兰|波兰|俄罗斯|印度)标准\)\s*(\d+)",
-                html
-            )
-        data["aqi"] = _to_int(aqi_match.group(1)) if aqi_match else None
-
-        # ================================================================
-        # 空气质量等级 — 从 AQI 数值推导（页面 HTML 只有英文，动态设置中文）
-        # ================================================================
-        if data["aqi"] is not None:
-            _aqi = data["aqi"]
-            if _aqi <= 50:
-                data["level"] = "优"
-            elif _aqi <= 100:
-                data["level"] = "良"
-            elif _aqi <= 150:
-                data["level"] = "轻度污染"
-            elif _aqi <= 200:
-                data["level"] = "中度污染"
-            elif _aqi <= 300:
-                data["level"] = "重度污染"
-            else:
-                data["level"] = "严重污染"
-        else:
-            data["level"] = None
-
-        # ================================================================
-        # 污染物 + 花粉 — 统一用 all_pairs 提取所有 name-value 对
-        # HTML 结构: <div class="name">PM2.5</div><div class="value">25</div>
-        #            <div class="name">花粉</div><div class="value">301~500</div>
-        # ================================================================
-        all_pairs = re.findall(
-            rf"<div class={_QUOTE_RE}name{_QUOTE_RE}>([^<]+)</div>.*?<div class={_QUOTE_RE}value{_QUOTE_RE}>([^<]+)</div>",
-            html, re.DOTALL
-        )
-
-        # 初始化花粉传感器为 None（花粉季之外均为空，属正常）
-        for _pk in ["pollen_total", "pollen_birch", "pollen_grass",
-                     "pollen_alder", "pollen_olive", "pollen_ragweed",
-                     "pollen_mugwort", "allergy_risk"]:
-            data[_pk] = None
-
-        pollen_raw_str = None
-        pollen_max_value = None
-
-        for name_raw, value_raw in all_pairs:
-            name = name_raw.strip()
-            value = value_raw.strip()
-
-            # 污染物（6种）
-            if name in POLLUTANT_NAMES:
-                key = name.lower().replace(".", "")
-                num_m = re.search(NUM_PATTERN, value)
-                data[key] = _to_float(num_m.group(1)) if num_m else None
-
-            # 花粉类型（通过 POLLEN_TYPES 映射）
-            elif name in POLLEN_TYPES:
-                sensor_key = POLLEN_TYPES[name]
-                range_m = re.search(r"(\d+)\s*~\s*(\d+)", value)
-                num_m = re.search(NUM_PATTERN, value) if not range_m else None
-
-                if range_m:
-                    data[sensor_key] = int(range_m.group(2))
-                elif num_m:
-                    data[sensor_key] = _to_float(num_m.group(1))
-                else:
-                    data[sensor_key] = value
-
-                # 记录总花粉的原始字符串和最大值（仅首次遇到时）
-                if sensor_key == "pollen_total" and pollen_raw_str is None:
-                    pollen_raw_str = value
-                    if range_m:
-                        pollen_max_value = int(range_m.group(2))
-                    elif num_m:
-                        pollen_max_value = _to_float(num_m.group(1))
-
-        # pollen: 原始字符串（如 "301~500"），用于显示
-        data["pollen"] = pollen_raw_str
-        # pollen_max: 范围最大值（数值），用于历史记录和仪表盘
-        data["pollen_max"] = pollen_max_value
-
-        # ================================================================
-        # 更新时间
-        # air-quality.com 页面中 update-time 的时间字符串为中国时区 (UTC+8)。
-        # 保留时区信息，让 HA 根据用户系统时区自动转换显示。
-        # ================================================================
-        update_time = None
-        time_match = re.search(rf"<div[^>]*class={_QUOTE_RE}update-time{_QUOTE_RE}[^>]*>\s*([\d\-: T+Z]+)\s*</div>", html)
-        if time_match:
-            raw_time = time_match.group(1).strip()
+        if self._lat is not None and self._lon is not None:
             try:
-                update_time = datetime.fromisoformat(raw_time)
-                if update_time.tzinfo is None:
-                    update_time = update_time.replace(tzinfo=_CST)
-            except ValueError:
+                row = await api.fetch_map_row(session, self._lat, self._lon, self.standard, self.place_id)
+                if row is not None:
+                    data.update(api.parse_place_row(row))
+            except api.ApiError as e:
+                _LOGGER.warning("地图数据接口失败: %s", e)
+
+            if data:
+                # 历史数据：精确更新时间 + 趋势（失败不致命）
                 try:
-                    update_time = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S")
-                    update_time = update_time.replace(tzinfo=_CST)
-                except Exception:
-                    pass
-        if update_time is None:
-            update_time = datetime.now(_CST)
-        data["update_time"] = update_time
+                    hist = await api.fetch_history(session, self.place_id, self.standard)
+                    summary = api.summarize_history(api.parse_history(hist))
+                    data.update(summary)
+                except api.ApiError as e:
+                    _LOGGER.debug("历史数据接口失败: %s", e)
 
-        # ================================================================
-        # 天气：温度、湿度、风速
-        # 注：部分字段值与单位之间可能有空格或特殊字符
-        # ================================================================
-        temp_match = re.search(rf"<div class={_QUOTE_RE}temperature{_QUOTE_RE}>\s*(-?\d+(?:\.\d+)?)[^<]*</div>", html)
-        data["temperature"] = _to_float(temp_match.group(1)) if temp_match else None
+                # 附近数据：天气/首要污染物/预报（带缓存，失败不致命）
+                try:
+                    nearby = await self._nearby_data(session)
+                    data.update(nearby)
+                except api.ApiError as e:
+                    _LOGGER.debug("附近数据接口失败: %s", e)
 
-        hum_match = re.search(rf"<div class={_QUOTE_RE}humidity{_QUOTE_RE}>\s*{NUM_PATTERN}\s*%</div>", html)
-        data["humidity"] = _to_float(hum_match.group(1)) if hum_match else None
+                if data.get("update_time") is None and data.get("nearby_update_time"):
+                    data["update_time"] = data.pop("nearby_update_time")
 
-        wind_match = re.search(rf"<div class={_QUOTE_RE}wind{_QUOTE_RE}>\s*{NUM_PATTERN}\s*kph</div>", html)
-        data["wind_speed"] = _to_float(wind_match.group(1)) if wind_match else None
+        # ── 回退路径：HTML 页面解析 ──────────────────────────
+        if not data:
+            _LOGGER.info("JSON 接口无数据，回退 HTML 页面解析: %s", self.place)
+            try:
+                html = await api.fetch_html(session, self.place, self.standard)
+                data = api.parse_html(html)
+            except api.SkeletonPageError as e:
+                raise UpdateFailed(str(e)) from e
+            except api.ApiError as e:
+                raise UpdateFailed(str(e)) from e
 
-        # ================================================================
-        # 风向角度 + UV — 从 curWeatherData JS 对象提取
-        # ================================================================
-        wind_degrees = None
-        wind_direction = None
-        uv = None
-        start_marker = "var curWeatherData = "
-        start_idx = html.find(start_marker)
-        if start_idx != -1:
-            json_start = start_idx + len(start_marker)
-            # 跳过空白，检查是否为 null（骨架页返回 null; 而非 JSON 对象）
-            remaining = html[json_start:].lstrip()
-            if not remaining.startswith("null"):
-                brace_count = 0
-                json_end = -1
-                for i in range(json_start, len(html)):
-                    if html[i] == "{":
-                        brace_count += 1
-                    elif html[i] == "}":
-                        brace_count -= 1
-                        if brace_count == 0:
-                            json_end = i + 1
-                            break
-                if json_end != -1:
-                    json_str = html[json_start:json_end].rstrip(";")
-                    try:
-                        weather_data = json.loads(json_str)
-                        if "wind_degrees" in weather_data:
-                            wind_degrees = _to_float(weather_data["wind_degrees"])
-                            if wind_degrees is not None:
-                                idx = round(wind_degrees / 22.5) % 16
-                                wind_direction = WIND_DIRECTIONS[idx]
-                        uv = weather_data.get("UV") or weather_data.get("uv")
-                        if uv is not None:
-                            uv = _to_float(uv)
-                    except (json.JSONDecodeError, TypeError):
-                        pass
+        if not data:
+            raise UpdateFailed("未获取到任何数据")
 
-        # UV 备选：从 HTML 提取（部分页面无 curWeatherData）
-        if uv is None:
-            # 最大值不固定（各地区 UV 上限不同），不硬编码
-            uv_match = re.search(rf"<div class={_QUOTE_RE}uv{_QUOTE_RE}>\s*{NUM_PATTERN}\s+of\s+\d+\s*</div>", html)
-            if uv_match:
-                uv = _to_float(uv_match.group(1))
-
-        data["wind_degrees"] = wind_degrees
-        data["wind_direction"] = wind_direction
-        data["uv_index"] = uv
-
-        # ================================================================
-        # 健康警告（排除 update_time，因为回退值为当前时间，不影响判断）
-        # ================================================================
-        all_none = all(v is None for k, v in data.items() if k != "update_time")
-        if all_none:
-            _LOGGER.warning("所有解析字段均为空，请检查网页结构是否变化。URL: %s", self.url)
+        # 健康警告：除 update_time 外全为空，多半是页面/接口结构变化
+        if all(v is None for k, v in data.items() if k != "update_time"):
+            _LOGGER.warning("所有解析字段均为空，请检查站点结构是否变化。place: %s", self.place)
 
         return data
 
@@ -418,34 +261,55 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
             "identifiers": {(DOMAIN, place)},
             "name": f"在意空气 {place_name}",
             "manufacturer": "在意空气",
-            "model": "网页抓取",
+            "model": "站点数据接口",
         }
 
     @property
     def native_value(self):
-        value = self.coordinator.data.get(self._key)
+        value = (self.coordinator.data or {}).get(self._key)
         if self._key == "update_time":
             if isinstance(value, datetime):
-                # 确保有时区信息供 HA 使用
-                if value.tzinfo is None:
-                    value = value.replace(tzinfo=_CST)
-                return value
-            if isinstance(value, str):
-                try:
-                    dt = datetime.fromisoformat(value)
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=_CST)
-                    return dt
-                except Exception:
-                    return None
+                return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
             return None
         return value
+
+    @property
+    def icon(self):
+        data = self.coordinator.data or {}
+        if self._key == "aqi_trend":
+            return {
+                "上升": "mdi:trending-up",
+                "下降": "mdi:trending-down",
+            }.get(data.get("aqi_trend"), "mdi:trending-neutral")
+        if self._key == "weather_condition":
+            return WEATHER_ICON_MAP.get(str(data.get("weather_icon") or ""), self._attr_icon)
+        return self._attr_icon
+
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data or {}
+        attrs = {}
+        level = data.get(f"{self._key}_level")
+        if level is not None:
+            attrs["level"] = level
+        if self._key == "aqi":
+            for src, dst in (
+                ("aqi_trend", "trend"),
+                ("trend_delta", "trend_delta"),
+                ("aqi_avg_24h", "avg_24h"),
+                ("aqi_max_24h", "max_24h"),
+                ("primary_pollutant", "primary_pollutant"),
+            ):
+                if data.get(src) is not None:
+                    attrs[dst] = data[src]
+            if data.get("forecast"):
+                attrs["forecast"] = data["forecast"]
+        return attrs
 
     @property
     def available(self):
         if not self.coordinator.last_update_success:
             return False
-        # 花粉类传感器在非花粉季时值为 None，属于正常现象，视为"可用但无数据"
         if self._key in POLLEN_KEYS:
             return True
-        return self.coordinator.data.get(self._key) is not None
+        return (self.coordinator.data or {}).get(self._key) is not None

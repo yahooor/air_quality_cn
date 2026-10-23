@@ -1,0 +1,453 @@
+<html>
+<head>
+<title>北京 实时空气质量指数 (AQI), PM2.5 与空气污染报告 - 在意空气</title>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-itunes-app" content="app-id=477700080">
+<meta name="keywords" content="空气质量指数, 空气质量, 花粉, 过敏, Air Matters, 在意空气, PM2.5, 空气污染, 雾, 霾, 空气, 手机软件, 手机App, App, Fresh-Ideas Studio, Weather, Health &amp; Fitness, ios apps, app, appstore, app store, iphone, ipad, ipod touch, itouch, itunes">
+<meta name="description" content="北京: AQI (中国标准) 110 轻度污染">
+<meta property="qc:admins" content="26052465076625305145136337" />
+<meta property="al:ios:url" content="https://air-matters.com" />
+<meta property="al:ios:app_store_id" content="477700080" />
+<meta property="al:ios:app_name" content="Air Matters" />
+<meta property="al:android:url" content="https://air-matters.com" />
+<meta property="al:android:app_name" content="Air Matters" />
+<meta property="al:android:package" content="com.freshideas.airindex" />
+<meta property="al:web:url" content="https://air-matters.com" />
+<meta property="og:title" content="北京 实时空气质量指数 (AQI), PM2.5 与空气污染报告 - 在意空气" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://air-quality.com/" />
+<meta property="og:image" content="https://air-quality.com/css/images/appicon_512.png" />
+<link rel="alternate" hreflang="zh-CN" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=zh-Hans&standard=aqi_cn" />
+<link rel="alternate" hreflang="zh-TW" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=zh-Hant&standard=aqi_cn" />
+<link rel="alternate" hreflang="en" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=en&standard=aqi_cn" />
+<link rel="alternate" hreflang="ja" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=ja&standard=aqi_cn" />
+<link rel="alternate" hreflang="ko" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=ko&standard=aqi_cn" />
+<link rel="alternate" hreflang="de" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=de&standard=aqi_cn" />
+<link rel="alternate" hreflang="fr" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=fr&standard=aqi_cn" />
+<link rel="alternate" hreflang="it" href="https://air-quality.com/place/china/beijing/ec8399ca?lang=it&standard=aqi_cn" />
+<base href="https://air-quality.com/" />
+<script language="javascript" type="text/javascript">
+	var baseURL = "https://air-quality.com/";
+	var langCode = "zh-Hans";
+</script>
+
+<link href="https://air-quality.com/css/bootstrap/font-awesome.min.css" rel="stylesheet">
+<link href="https://air-quality.com/css/bootstrap/bootstrap.css" rel="stylesheet">
+<link href="https://air-quality.com/css/bootstrap/navbar-fixed-top.css" rel="stylesheet">
+<link href="https://air-quality.com/css/jquery-ui.min.css" rel="stylesheet">
+<link href="https://air-quality.com/css/leaflet/leaflet.css" rel="stylesheet">
+<link rel="stylesheet" media="screen and (min-width: 1023px)" href="https://air-quality.com/css/basic.css">
+<link rel="stylesheet" media="screen and (max-width: 1023px)" href="https://air-quality.com/css/basic_m.css">
+
+<script src="https://air-quality.com/js/jquery-3.6.0.min.js"></script>
+<script src="https://air-quality.com/js/jquery-ui.min.js"></script>
+<script src="https://air-quality.com/js/bootstrap/bootstrap.js"></script>
+<script src="https://air-quality.com/js/moment.min.js"></script>
+<script src="https://air-quality.com/js/api-web/basic.js"></script>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-85721203-3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-85721203-3');
+</script>
+
+<script data-ad-client="ca-pub-9218085338216729" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+
+<body>
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+	  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+	    <span class="sr-only">Toggle navigation</span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	  </button>
+      <a class="navbar-brand" href="https://air-quality.com/">
+          <picture>
+		    <source srcset="css/images/logo_air_quality_com_dark.png" media="(prefers-color-scheme: dark)">
+		    <img class="navbar-brand-image" src="css/images/logo_air_quality_com.png">
+		  </picture>
+      </a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+    	<ul class="nav navbar-nav" id="nav-menu">
+<!-- 	    <li><a href="https://air-matters.com">App</a></li> -->
+<!--
+        	<li><a href="https://air-quality.com/map">Map</a></li>
+
+			<li><a href="https://dev.air-matters.com" target="_blank">Data API</a></li>
+-->
+
+    	</ul>
+
+		<ul class="navbar-nav nav navbar-right">
+		  <li><a href="https://air-quality.com/places?lang=zh-Hans&standard=aqi_cn">地点列表</a></li>
+		  <li class="dropdown standard-list" id="standard-nav-list">
+			  <a href="#" class="nav__link dropdown-toggle bg-hover-color" data-toggle="dropdown">AQI (中国标准) <b class="caret"></b></a>
+			  <ul class="dropdown-menu">
+			    <li value="aqi_au">AQC (澳大利亚标准)</li><li value="aqi_ca">AQHI (加拿大标准)</li><li value="aqi_cn">AQI (中国标准)</li><li value="aqi_nl">AQI (荷兰标准)</li><li value="aqi_us">AQI (美国标准)</li><li value="caqi_eu">CAQI (欧洲标准)</li><li value="daqi_uk">AQI (英国标准)</li><li value="naqi_in">AQI (印度标准)</li>  
+			  </ul>
+          </li>
+          <li class="dropdown lang-list">
+			  <a href="#" class="nav__link dropdown-toggle bg-hover-color zh-Hans" data-toggle="dropdown">&nbsp; <b class="caret"></b></a>
+			  <ul class="dropdown-menu">
+			    <li><a href="Javascript:changeLang('en');" class="en bg-hover-color">English</a></li><li><a href="Javascript:changeLang('fr');" class="fr bg-hover-color">Français</a></li><li><a href="Javascript:changeLang('de');" class="de bg-hover-color">Deutsch</a></li><li><a href="Javascript:changeLang('ja');" class="ja bg-hover-color">日本語</a></li><li><a href="Javascript:changeLang('ko');" class="ko bg-hover-color">한국어</a></li><li><a href="Javascript:changeLang('zh-Hans');" class="zh-Hans bg-hover-color">简体中文</a></li><li><a href="Javascript:changeLang('zh-Hant');" class="zh-Hant bg-hover-color">繁體中文</a></li>    
+			  </ul>
+          </li>
+		</ul>
+		<form class="navbar-form navbar-right">
+			<div class="form-group">
+				<input type="text" id="search-ac-nav" title="search place" placeholder="搜索地点" class="form-control ui-autocomplete-input" autocomplete="off">
+			</div>
+<!--
+			<button type="submit" class="btn btn-default">地点列表</button>
+-->
+		</form>
+		
+    </div><!--/.nav-collapse -->
+  </div>
+</nav><!-- <link rel="stylesheet" media="screen and (min-width: 1023px)" href="https://air-quality.com/css/place.css"> -->
+<link rel="stylesheet" media="screen and (min-width: 1023px)" href="https://air-quality.com/css/place.css">
+<link rel="stylesheet" media="screen and (max-width: 1023px)" href="https://air-quality.com/css/place_m.css">
+<script>
+var placeID = "ec8399ca";
+var standard = "aqi_cn";
+var urlKey = "china/beijing";
+var historyKind = "aqi";
+var historyName = "AQI (\u4e2d\u56fd\u6807\u51c6)";
+var historyTimeInterval = "hourly";
+var historyData;
+var curWeatherData = {"UV":"0","feel_like":9.87,"humidity":"68%","icon":"nt_clear","temp_c":11,"temp_f":52,"weather":"clear sky","wind_degrees":207,"wind_kph":5};
+</script>
+
+<style>
+.gauge-container > .gauge .value {
+  stroke: #ff7e00;
+}
+</style>
+
+<script src="https://air-quality.com/js/api-web/detail.js?v=1"></script>
+<script src="https://air-quality.com/js/leaflet/leaflet.js"></script>
+<script src="https://air-quality.com/js/gauge/gauge.min.js"></script>
+
+<div class="container">
+<div id="search-box">
+	<input type="text" id="search-ac" title="search place" placeholder="搜索地点" class="form-control ui-autocomplete-input" autocomplete="off">
+</div>
+<ol class="breadcrumb">
+  <li><a href='https://air-quality.com/continent/asia/2?lang=zh-Hans&standard=aqi_cn'>亚洲</a></li><li><a href='https://air-quality.com/country/china/ce4c01d6?lang=zh-Hans&standard=aqi_cn'>中国大陆</a></li><li class='active'>北京</li></ol>
+
+	<div id="standards-dropdown" class="standards-dropdown input-group-btn">
+	    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text">AQI (中国标准)</span><span class="caret"></span></button>
+	    <ul class="dropdown-menu">
+		    <li value="aqi_au">AQC (澳大利亚标准)</li><li value="aqi_ca">AQHI (加拿大标准)</li><li value="aqi_cn">AQI (中国标准)</li><li value="aqi_nl">AQI (荷兰标准)</li><li value="aqi_us">AQI (美国标准)</li><li value="caqi_eu">CAQI (欧洲标准)</li><li value="daqi_uk">AQI (英国标准)</li><li value="naqi_in">AQI (印度标准)</li>	    </ul>
+	</div>
+
+<div class="detail-main">
+<div class="detail-title">
+	<h2>北京</h2>
+	<p>北京, 中国大陆</p>
+</div>
+<div class="update-time"> 2026-10-23 17:51</div>
+
+<div id="chartBox" class="chart-box">
+	<div class="title">AQI (中国标准)</div>
+<!-- 	<div class="indexValue">110</div> -->
+	<div class="levelWrap">
+		<div class="levelWrap2">
+			<div class="level" style="background:#ff7e00">轻度污染</div>
+		</div>
+	</div>
+		<div id="gauge3" style="width: 240px; height: 240px; margin: 10px auto 0px;" class="gauge-container three"></div>
+	</div>
+
+<div class="reading-box">
+	<div class="title">
+	<a id="pollutants_link" onclick="javascript:activeReading('pollutants')" class="active">污染物</a></div><div class="pollutants" style="display:block;"><div class='pollutant-item odd'><div class='name'>PM2.5</div><div class='unit'>μg/m³</div><div class='value'>71</div><div class='ratio-bar' style='background:#ff7e00; width:calc(100%*0.31428571428571);'></div><div class='ratio-bar-bg'></div></div><div class='pollutant-item even'><div class='name'>PM10</div><div class='unit'>μg/m³</div><div class='value'>98</div><div class='ratio-bar' style='background:#d9d726; width:calc(100%*0.24081632653061);'></div><div class='ratio-bar-bg'></div></div><div class='pollutant-item odd'><div class='name'>NO2</div><div class='unit'>μg/m³</div><div class='value'>41</div><div class='ratio-bar' style='background:#00E400; width:calc(100%*0.058571428571429);'></div><div class='ratio-bar-bg'></div></div><div class='pollutant-item even'><div class='name'>CO</div><div class='unit'>μg/m³</div><div class='value'>800</div><div class='ratio-bar' style='background:#00E400; width:calc(100%*0.022857142857143);'></div><div class='ratio-bar-bg'></div></div><div class='pollutant-item odd'><div class='name'>O3</div><div class='unit'>μg/m³</div><div class='value'>22</div><div class='ratio-bar' style='background:#00E400; width:calc(100%*0.019642857142857);'></div><div class='ratio-bar-bg'></div></div><div class='pollutant-item even'><div class='name'>SO2</div><div class='unit'>μg/m³</div><div class='value'>3</div><div class='ratio-bar' style='background:#00E400; width:calc(100%*0.0028571428571429);'></div><div class='ratio-bar-bg'></div></div><div class='clr'></div></div></div>
+
+<div class="weather-box">
+	<div class="title"><span>天气</span></div>
+	<div id="temperature-dropdown" class="input-group-btn">
+	    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text">℃</span><span class="caret"></span></button>
+	    <ul class="dropdown-menu">
+	        <li value="C">℃</li>
+	        <li value="F">℉</li>
+	    </ul>
+	</div>
+
+	<div class="weather-items">
+	<div class='weather-item'>
+				<div class='weather-icon icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div>
+				<div class='temperature'>11℃</div>
+			  </div><div class='weather-item'>
+				<div class='humidity-icon icon'></div>
+				<div class='humidity'>68%</div>
+			  </div><div class='weather-item'>
+				<div class='wind-icon icon' style='transform: rotate(207deg)'></div>
+				<div class='wind'>5 kph</div>
+			  </div><div class='weather-item'>
+				<div class='uv-icon icon'></div>
+				<div class='uv'>0 of 11</div>
+			  </div>	<div class="clr"></div>
+	</div>
+
+</div>
+<div class="clr"></div>
+
+<!--
+<div class="forecast-box">
+	<div class="main-block-title">预测</div>
+	<div id="forecast-interval-dropdown" class="input-group-btn">
+	    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text">每天</span><span class="caret"></span></button>
+	    <ul class="dropdown-menu">
+	        <li value="daily">每天</li>
+	        <li value="hourly">每小时</li>
+	    </ul>
+	</div>
+	<div class="main-block-content">
+		<div class="daily-forecast-scroll">
+			<div class="daily-forecast" style="width: 1485px;">
+			<div class='forecast-item'><div class='date'>2026-10-24</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span><span class='spliter'>/</span><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>65°</span><span class='spliter'>\</span><span class='value'>49°</span></div><div class="value-wrap">
+								<div class="value" style="background:#ff0000;"><span>140~160</span><br/>中度污染</div>
+								
+							  </div></div><div class='forecast-item'><div class='date'>2026-10-25</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span><span class='spliter'>/</span><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>62°</span><span class='spliter'>\</span><span class='value'>51°</span></div><div class="value-wrap">
+								<div class="value" style="background:#ff7e00;"><span>90~110</span><br/>轻度污染</div>
+								
+							  </div></div><div class='forecast-item'><div class='date'>2026-10-26</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span><span class='spliter'>/</span><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>59°</span><span class='spliter'>\</span><span class='value'>52°</span></div><div class="value-wrap">
+								<div class="value" style="background:#d9d726;"><span>50~70</span><br/>良</div>
+								
+							  </div></div><div class='forecast-item'><div class='date'>2026-10-27</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>13°</span><span class='spliter'>/</span><span class='value'>8°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>56°</span><span class='spliter'>\</span><span class='value'>47°</span></div><div class="value-wrap">
+								<div class="value" style="background:#00E400;"><span>20~40</span><br/>优</div>
+								
+							  </div></div><div class='forecast-item'><div class='date'>2026-10-28</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span><span class='spliter'>/</span><span class='value'>8°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>58°</span><span class='spliter'>\</span><span class='value'>46°</span></div><div class="value-wrap">
+								<div class="value" style="background:#d9d726;"><span>80~100</span><br/>良</div>
+								
+							  </div></div><div class='forecast-item'><div class='date'>2026-10-29</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span><span class='spliter'>/</span><span class='value'>8°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>63°</span><span class='spliter'>\</span><span class='value'>47°</span></div></div><div class='forecast-item'><div class='date'>2026-10-30</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>20°</span><span class='spliter'>/</span><span class='value'>12°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>68°</span><span class='spliter'>\</span><span class='value'>53°</span></div></div><div class='forecast-item'><div class='date'>2026-10-31</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span><span class='spliter'>/</span><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>63°</span><span class='spliter'>\</span><span class='value'>52°</span></div></div><div class='forecast-item'><div class='date'>2026-11-01</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>12°</span><span class='spliter'>/</span><span class='value'>7°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>53°</span><span class='spliter'>\</span><span class='value'>45°</span></div></div><div class='forecast-item'><div class='date'>2026-11-02</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>13°</span><span class='spliter'>/</span><span class='value'>6°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>56°</span><span class='spliter'>\</span><span class='value'>43°</span></div></div><div class='forecast-item'><div class='date'>2026-11-03</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span><span class='spliter'>/</span><span class='value'>8°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>58°</span><span class='spliter'>\</span><span class='value'>46°</span></div></div>			</div>
+		</div>
+		<div class="hourly-forecast-scroll" style="display: none;">
+			<div class="hourly-forecast" style="width: 4800px;">
+			<div class='forecast-item'><div class='date'>19:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>52°</span></div></div><div class='forecast-item'><div class='date'>20:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>52°</span></div></div><div class='forecast-item'><div class='date'>21:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>50°</span></div></div><div class='forecast-item'><div class='date'>22:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>50°</span></div></div><div class='forecast-item'><div class='date'>23:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>50°</span></div></div><div class='forecast-item'><div class='date'>00:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>12°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>54°</span></div></div><div class='forecast-item'><div class='date'>01:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>57°</span></div></div><div class='forecast-item'><div class='date'>02:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>59°</span></div></div><div class='forecast-item'><div class='date'>03:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>16°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>61°</span></div></div><div class='forecast-item'><div class='date'>04:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>63°</span></div></div><div class='forecast-item'><div class='date'>05:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>06:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>07:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>08:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>09:00</div><div class='icon' style='background-image:url(css/images/weather/weather_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>65°</span></div></div><div class='forecast-item'><div class='date'>10:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>11:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_clear_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>12:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_mostlysunny_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>13:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>18°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>64°</span></div></div><div class='forecast-item'><div class='date'>14:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>63°</span></div></div><div class='forecast-item'><div class='date'>15:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>63°</span></div></div><div class='forecast-item'><div class='date'>16:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>17°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>62°</span></div></div><div class='forecast-item'><div class='date'>17:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>16°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>61°</span></div></div><div class='forecast-item'><div class='date'>18:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>16°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>60°</span></div></div><div class='forecast-item'><div class='date'>19:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>16°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>60°</span></div></div><div class='forecast-item'><div class='date'>20:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>59°</span></div></div><div class='forecast-item'><div class='date'>21:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>59°</span></div></div><div class='forecast-item'><div class='date'>22:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>59°</span></div></div><div class='forecast-item'><div class='date'>23:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>15°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>58°</span></div></div><div class='forecast-item'><div class='date'>00:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>58°</span></div></div><div class='forecast-item'><div class='date'>01:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>57°</span></div></div><div class='forecast-item'><div class='date'>02:00</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>57°</span></div></div><div class='forecast-item'><div class='date'>03:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>57°</span></div></div><div class='forecast-item'><div class='date'>04:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>14°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>57°</span></div></div><div class='forecast-item'><div class='date'>05:00</div><div class='icon' style='background-image:url(css/images/weather/weather_cloudy_light.png);'></div><div class='temperature temp_c'><span class='value'>13°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>56°</span></div></div><div class='forecast-item'><div class='date'>06:00</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>13°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>55°</span></div></div><div class='forecast-item'><div class='date'>07:00</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>12°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>53°</span></div></div><div class='forecast-item'><div class='date'>08:00</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>52°</span></div></div><div class='forecast-item'><div class='date'>09:00</div><div class='icon' style='background-image:url(css/images/weather/weather_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>10:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>11:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>12:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>13:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>14:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>15:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>16:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>10°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>17:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div><div class='forecast-item'><div class='date'>18:00</div><div class='icon' style='background-image:url(css/images/weather/weather_nt_rain_light.png);'></div><div class='temperature temp_c'><span class='value'>11°</span></div><div class='temperature temp_f' style='display:none;'><span class='value'>51°</span></div></div>			</div>
+		</div>
+	</div>
+</div>
+-->
+<div class="history-box">
+	<div class="main-block-title">历史数据</div>
+	<div class="dropdown-wrapper">
+		<div id="history-interval-dropdown" class="input-group-btn">
+		    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text">每小时</span><span class="caret"></span></button>
+		    <ul class="dropdown-menu">
+			    <li value="hourly">每小时</li>
+		        <li value="daily">每天</li>
+		    </ul>
+		</div>
+		<div id="history-kind-dropdown" class="input-group-btn">
+		    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text">AQI (中国标准)</span><span class="caret"></span></button>
+		    <ul class="dropdown-menu">
+			    <li value="aqi">AQI (中国标准)</li><li value="pm25">PM2.5</li><li value="pm10">PM10</li><li value="no2">NO2</li><li value="co">CO</li><li value="o3">O3</li><li value="so2">SO2</li>		    </ul>
+		</div>
+		<div class="clr"></div>
+	</div>
+	<div class="main-block-content">
+		<div class="history-scroll">
+			<div class="history-items">
+				
+			</div>
+		</div>
+	</div>
+	<div class="history-value-tag"></div>
+</div>
+<div class="site-box">
+	<div class="main-block-title">包含的地点</div>
+	<div class="main-block-content">
+		<a href='https://air-quality.com/place/china/dongcheng/7319628a?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>东城区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 104</div>
+					  </div></a><a href='https://air-quality.com/place/china/fengtai/4c362ed8?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>丰台区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 122</div>
+					  </div></a><a href='https://air-quality.com/place/china/daxing/55c7c758?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>大兴区</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;" ?>AQI 96</div>
+					  </div></a><a href='https://air-quality.com/place/china/miyun/789a7f37?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>密云区</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;" ?>AQI 98</div>
+					  </div></a><a href='https://air-quality.com/place/china/pinggu/fa4a57d3?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>平谷区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 103</div>
+					  </div></a><a href='https://air-quality.com/place/china/yanqing/cd4e63b4?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>延庆区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 108</div>
+					  </div></a><a href='https://air-quality.com/place/china/huairou/7817c9a1?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>怀柔区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 101</div>
+					  </div></a><a href='https://air-quality.com/place/china/fangshan/ac6174de?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>房山区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 124</div>
+					  </div></a><a href='https://air-quality.com/place/china/changping/48fcb671?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>昌平区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 125</div>
+					  </div></a><a href='https://air-quality.com/place/china/chaoyang/04ce554a?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>朝阳区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 110</div>
+					  </div></a><a href='https://air-quality.com/place/china/haidian/7d638731?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>海淀区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 116</div>
+					  </div></a><a href='https://air-quality.com/place/china/shijingshan/a90b84de?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>石景山区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 121</div>
+					  </div></a><a href='https://air-quality.com/place/china/xicheng/d4a203ae?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>西城区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 107</div>
+					  </div></a><a href='https://air-quality.com/place/china/tongzhou/c9236480?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>通州区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 114</div>
+					  </div></a><a href='https://air-quality.com/place/china/mentougou/5d2f480f?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item odd'><div class='title'>门头沟区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 117</div>
+					  </div></a><a href='https://air-quality.com/place/china/shunyi/21d83be1?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item even'><div class='title'>顺义区</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;" ?>AQI 114</div>
+					  </div></a>		<div class="clr"></div>
+	</div>
+</div>
+<div class="source-box">
+	<div class="main-block-title">数据来源</div>
+	<div class="main-block-content">
+		<a href='http://www.bjmemc.com.cn' target='_self' class='source-item'>http://www.bjmemc.com.cn</a><a href='http://www.bjmb.gov.cn' target='_self' class='source-item'>http://www.bjmb.gov.cn</a><a href='http://www.stateair.net/web/post/1/1.html' target='_self' class='source-item'>http://www.stateair.net/web/post/1/1.html</a>		<div class="clr"></div>
+	</div>
+</div>
+
+
+</div>
+<div class="detail-side-col">
+<div class="detail-side-app detail-block">
+	<h4 class="side-block-title">下载 App</h4>
+	<a class="qrcode-btn" data-toggle="modal" data-target="#qrcode-modal">扫描二维码</a>
+	<div class="app-intro">
+		<div class="appicon"></div>
+		<div class="app-title">在意空气</div>
+		<div class="app-descr">在手机上实时查询全球超过 180 个国家的空气质量。</div>
+		<div class="clr"></div>
+	</div>
+	<div class="app-download-btns">
+		<div class="ios-download-btns">
+			<h3>iPhone, iPad</h3>
+			<div class="block">
+				<a href="https://itunes.apple.com/app/id477700080" target="_blank" class="btn btn_ios"></a>
+				<div class="clr"></div>
+			</div>
+		</div>
+		<div class="android-download-btns">
+			<h3>Android</h3>
+			<div class="block">
+				<a target="_blank" href="https://play.google.com/store/apps/details?id=com.freshideas.airindex" class="btn btn_googleplay"></a>
+				<a target="_blank" id="AndroidAPKDownload" href="https://air-matters.com/download/routes.html" class="btn btn_local"></a>
+				<div class="clr"></div>
+			</div>
+		</div>
+	</div>
+	  <!-- Modal -->
+	<div class="modal fade" id="qrcode-modal" role="dialog">
+	    <div class="modal-dialog">
+	    
+	      <!-- Modal content-->
+	      <div class="modal-content" style="padding: 20px;">
+	        	<h4 class="modal-title">扫描二维码下载应用程序</h4>
+				<ul class="nav nav-tabs nav-justified" style="margin-top: 20px;">
+			  		<li id="qrcode-ios-tab" role="presentation" class="active"><a href="Javascript:activeQRTab('ios');">iOS</a></li>
+			  		<li id="qrcode-googleplay-tab" role="presentation"><a href="Javascript:activeQRTab('googleplay');">Google Play</a></li>
+			  		<li id="qrcode-apk-tab" role="presentation"><a href="Javascript:activeQRTab('apk');">Download APK</a></li>
+				</ul>
+				<div class="qrcodes">
+					<div id="ios-qrcode" class="qrcode"></div>
+					<div id="googleplay-qrcode" class="qrcode" style="display: none;"></div>
+					<div id="apk-qrcode" class="qrcode" style="display: none;"></div>
+				</div>
+	      </div>
+	      
+	    </div>
+	</div>
+</div>
+
+
+<div class="detail-side-ads-card detail-block" style="height: 250px; width: 345px; margin: 0 auto 15px; position: relative; padding: 0px; background: none;">
+	<a target="_blank" href="https://dev.air-matters.com" style="background-image:url('css/images/api_card_square.png'); background-size: contain; background-repeat: no-repeat; display: block; width: 100%; height: 100%;"></a>
+</div>
+
+
+<div id="map" class="detail-side-map detail-block" style="height: 400px; width: 100%; ">
+	<div id="kind-dropdown" class="input-group-btn">
+	    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="text"></span><span class="caret"></span></button>
+	    <ul class="dropdown-menu">
+	    </ul>
+	</div>
+</div>
+
+
+<div class="detail-side-nearby detail-block">
+	<h4 class="side-block-title">附近的城市</h4>
+	<div class="side-block-content">
+		<a href='https://air-quality.com/place/china/beijing/ec8399ca?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>北京</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 110</div>
+					  </div></a><a href='https://air-quality.com/place/china/langfang/17bc7c51?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>廊坊</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 130</div>
+					  </div></a><a href='https://air-quality.com/place/china/tianjin/429fc25c?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>天津</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 114</div>
+					  </div></a><a href='https://air-quality.com/place/china/baoding/86ac8491?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>保定</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 140</div>
+					  </div></a><a href='https://air-quality.com/place/china/tangshan/3ae8ec3b?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>唐山</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 102</div>
+					  </div></a><a href='https://air-quality.com/place/china/zhangjiakou/17d06691?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>张家口</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 103</div>
+					  </div></a><a href='https://air-quality.com/place/china/chengde/5cfd7e11?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>承德</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;">AQI 86</div>
+					  </div></a><a href='https://air-quality.com/place/china/cangzhou/bee5bfaa?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>沧州</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;">AQI 80</div>
+					  </div></a><a href='https://air-quality.com/place/china/hengshui/34e778a4?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>衡水</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;">AQI 52</div>
+					  </div></a><a href='https://air-quality.com/place/china/shijiazhuang/1e690e01?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>石家庄</div><div class="value-wrap">
+						<div class="value" style="background:#ff7e00;">AQI 121</div>
+					  </div></a><a href='https://air-quality.com/place/china/datong/8d646dcd?lang=zh-Hans&standard=aqi_cn' target='_self' class='site-item'><div class='title'>大同</div><div class="value-wrap">
+						<div class="value" style="background:#d9d726;">AQI 84</div>
+					  </div></a>		<div class="clr"></div>
+	</div>
+</div>
+
+
+</div>
+</div>
+<script>
+
+function initMap(){
+    map = L.map('map').setView([39.906214, 116.3977], 6);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	    maxZoom: 12,
+	}).addTo(map);
+	
+    map.on('zoomend', function(ev) {
+	    getMapData();
+	    //alert(ev.latlng); // ev is an event object (MouseEvent in this case)
+	});
+	
+	map.on('moveend', function(ev) {
+	    getMapData();
+	    //alert(ev.latlng); // ev is an event object (MouseEvent in this case)
+	});
+	
+}
+
+$(document).ready(function(){
+	initControls();
+	//drawChart();
+	initMap();
+	getMapData();
+	drawHistoryChart();
+	
+		var gauge3 = Gauge(
+	        document.getElementById("gauge3"), {
+	            max: 350,
+	            value: 110	        }
+	    );
+		
+	$('.update-time').text(updateTimezone($('.update-time').text()));
+	
+});
+
+</script>
+<div id="Footer">Air Matters &copy; 2026</div>
+</body>
+</html>

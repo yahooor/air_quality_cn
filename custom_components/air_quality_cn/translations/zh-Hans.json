@@ -39,10 +39,11 @@
   "options": {
     "step": {
       "init": {
-        "title": "修改刷新频率",
-        "description": "设置空气质量数据的更新间隔（分钟）",
+        "title": "修改设置",
+        "description": "调整数据刷新频率与 AQI 标准（修改标准后会自动重新加载数据）",
         "data": {
-          "scan_interval": "更新间隔（分钟）"
+          "scan_interval": "更新间隔（分钟）",
+          "standard": "空气质量标准"
         }
       }
     }

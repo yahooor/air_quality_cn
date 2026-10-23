@@ -4,12 +4,12 @@ config_flow.py for air_quality_cn integration
 """
 import voluptuous as vol
 import logging
-from urllib.parse import quote
 
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from . import api
 from .const import (
     DOMAIN,
     DEFAULT_STANDARD,
@@ -19,6 +19,8 @@ from .const import (
     CONF_STANDARD,
     CONF_SCAN_INTERVAL,
     CONF_PLACE_NAME,
+    CONF_LAT,
+    CONF_LON,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,17 +47,12 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if query:
                 session = async_get_clientsession(self.hass)
                 try:
-                    url = f"https://air-quality.com/data/search_places?term={quote(query)}&lang=zh-Hans"
-                    async with session.get(url, timeout=10) as resp:
-                        if resp.status == 200:
-                            results = await resp.json(content_type=None)
-                            if results:
-                                self._search_results = results[:50]
-                                return await self.async_step_search_select()
-                            errors["query"] = "no_results"
-                        else:
-                            errors["query"] = "search_failed"
-                except Exception as e:
+                    results = await api.get_search_results(session, query)
+                    if results:
+                        self._search_results = results[:50]
+                        return await self.async_step_search_select()
+                    errors["query"] = "no_results"
+                except api.ApiError as e:
                     _LOGGER.error("搜索失败: %s", e)
                     errors["query"] = "search_failed"
             else:
@@ -108,6 +105,7 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             standard = user_input.get("standard", DEFAULT_STANDARD)
             place, place_name = self._resolve_place_and_name()
+            result = self._selected_place or {}
             return self.async_create_entry(
                 title=f"在意空气 ({place_name})",
                 data={
@@ -115,6 +113,8 @@ class AirQualityCNConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PLACE_NAME: place_name,
                     CONF_STANDARD: standard,
                     CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                    CONF_LAT: result.get("lat"),
+                    CONF_LON: result.get("lon"),
                 },
             )
 
@@ -167,7 +167,11 @@ class AirQualityCNOptionsFlow(config_entries.OptionsFlow):
         current_interval = options.get(
             CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         )
+        current_standard = options.get(
+            CONF_STANDARD, data.get(CONF_STANDARD, DEFAULT_STANDARD)
+        )
         schema = vol.Schema({
-            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): vol.All(int, vol.Range(min=1)),
+            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): vol.All(int, vol.Range(min=5)),
+            vol.Optional(CONF_STANDARD, default=current_standard): vol.In(STANDARDS),
         })
         return self.async_show_form(step_id="init", data_schema=schema)
