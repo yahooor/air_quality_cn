@@ -85,14 +85,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     standard = entry.options.get(
         CONF_STANDARD, entry.data.get(CONF_STANDARD, DEFAULT_STANDARD)
     )
-    scan_interval = entry.options.get(
-        CONF_SCAN_INTERVAL,
-        entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-    )
+    try:
+        scan_interval = int(entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        ))
+    except (TypeError, ValueError):
+        scan_interval = DEFAULT_SCAN_INTERVAL
 
     coordinator = AirQualityCoordinator(
         hass, entry, place, place_id, place_name, standard, scan_interval
     )
+    hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})["coordinator"] = coordinator
 
     try:
         await coordinator.async_config_entry_first_refresh()

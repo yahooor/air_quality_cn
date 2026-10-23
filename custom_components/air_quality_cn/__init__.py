@@ -4,31 +4,28 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+# 预导入平台模块：集成模块本身由 loader 在执行器线程导入，
+# 在此处一并导入 sensor 可避免 async_forward_entry_setups 在事件循环内做磁盘导入
+from . import sensor as _sensor  # noqa: F401  预导入，见上
+from .const import DOMAIN, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL
+
+PLATFORMS = ["sensor"]
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """HA 标准迁移函数：处理旧版本 entry 升级到当前 VERSION/MINOR_VERSION。"""
-    from .const import CONF_PLACE, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL
-
+    """旧版本 entry 升级（新版 HA 中不得向 async_update_entry 传 version，
+    返回 True 后 HA 自动将 entry 提升到流程当前 VERSION/MINOR_VERSION）。"""
     old_version = config_entry.version
-    old_minor = config_entry.minor_version
 
-    _LOGGER.debug(
-        "迁移配置条目 %s，当前版本 %s.%s",
-        config_entry.entry_id, old_version, old_minor,
-    )
-
-    # 防止降级：版本号大于当前 → 拒绝
     if old_version > 2:
         _LOGGER.error(
             "配置条目 %s 版本 %s 高于当前支持版本，可能由降级导致",
@@ -36,50 +33,28 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         )
         return False
 
-    # 已经是最新版本 → 无需操作
-    if old_version == 2 and old_minor == 1:
-        _LOGGER.debug("配置条目 %s 已是最新版本，跳过迁移", config_entry.entry_id)
-        return True
-
-    new_data = {**config_entry.data}
-
-    # ── 版本 1 → 2：补充缺失字段 ──────────────────────────
     if old_version < 2:
-        # 补充 place_name
+        new_data = {**config_entry.data}
         if CONF_PLACE_NAME not in new_data:
-            place = new_data.get(CONF_PLACE, "")
+            place = new_data.get("place", "")
             new_data[CONF_PLACE_NAME] = place.split("/")[-1] if place else "Unknown"
-
-        # 补充 scan_interval
         if CONF_SCAN_INTERVAL not in new_data:
             new_data[CONF_SCAN_INTERVAL] = 30
-
-        # 补充 standard
         if CONF_STANDARD not in new_data:
             new_data[CONF_STANDARD] = "aqi_cn"
-
-    # ── 次版本 0 → 1：（预留，当前无额外变更）──────────────
-    # if old_minor < 1:
-    #     pass
-
-    hass.config_entries.async_update_entry(
-        config_entry,
-        data=new_data,
-        version=2,
-        minor_version=1,
-    )
+        hass.config_entries.async_update_entry(config_entry, data=new_data)
 
     _LOGGER.info(
-        "迁移完成 %s：%s.%s → 2.1",
-        config_entry.entry_id, old_version, old_minor,
+        "迁移完成 %s：版本 %s → 当前版本",
+        config_entry.entry_id, old_version,
     )
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    return await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """选项更新后重新加载集成，使新的 scan_interval 生效。"""
+    """选项更新后重新加载集成，使新的 scan_interval / standard 生效。"""
     await hass.config_entries.async_reload(entry.entry_id)
