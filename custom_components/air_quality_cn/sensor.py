@@ -5,6 +5,7 @@ Air Quality CN - Home Assistant 自定义集成
 数据获取优先走站点 JSON 接口（读数/等级/花粉/历史/天气/预报），
 接口异常时自动回退到 HTML 页面解析。
 """
+import asyncio
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -153,11 +154,16 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         self.place_id = place_id
         self.place_name = place_name
         self.standard = standard
+        self._entry = entry
         self._entry_id = entry.entry_id
         store = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
         self._lat = entry.data.get(CONF_LAT) or store.get("lat")
         self._lon = entry.data.get(CONF_LON) or store.get("lon")
         self._nearby_cache = (0.0, {})
+        # 坐标解析状态：成功后待持久化 / 失败退避时间戳（monotonic）
+        self._coords_persisted = entry.data.get(CONF_LAT) is not None
+        self._resolve_failed_at = 0.0
+        self._update_count = 0
         super().__init__(
             hass,
             _LOGGER,
@@ -166,20 +172,56 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         )
 
     async def _resolve_coords(self, session):
-        """旧配置条目缺坐标：按 place_name 搜索并精确匹配 place_id。"""
+        """旧配置条目缺坐标：按 place_name 搜索并精确匹配 place_id。
+
+        - 失败退避：1 小时内不重复尝试（此前每次刷新都超时重试，拖慢数据更新）
+        - 成功后先写内存缓存，之后由 _persist_coords 持久化进 config entry，
+          重启后不再需要解析
+        """
         store = self.hass.data.setdefault(DOMAIN, {}).setdefault(self._entry_id, {})
         if store.get("lat"):
             self._lat, self._lon = store["lat"], store["lon"]
             return
+        now = time.monotonic()
+        if now - self._resolve_failed_at < 3600:
+            return  # 失败退避期内，直接走 HTML 回退
         try:
             lat, lon = await api.resolve_coords(session, self.place_id, self.place_name)
         except api.ApiError as e:
-            _LOGGER.warning("坐标解析失败（本次使用 HTML 回退）: %s", e)
+            self._resolve_failed_at = now
+            _LOGGER.warning("坐标解析失败（本次使用 HTML 回退，1 小时后重试）: %s", e)
             return
         if lat is not None and lon is not None:
             self._lat, self._lon = lat, lon
             store.update({"lat": lat, "lon": lon})
             _LOGGER.info("已解析地点 %s 坐标: (%s, %s)", self.place_name, lat, lon)
+
+    async def _maybe_persist_coords(self) -> None:
+        """刷新成功后考虑把解析到的坐标持久化进 config entry。
+
+        延迟到第 2 次刷新之后才执行，且以独立任务派发（带 2s 延时），
+        确保写入触发的 reload 不会落在当前刷新栈上。
+        """
+        self._update_count += 1
+        if (
+            self._update_count >= 2
+            and not self._coords_persisted
+            and self._lat is not None
+            and self._lon is not None
+        ):
+            self._coords_persisted = True
+            self.hass.async_create_task(self._deferred_persist_coords())
+
+    async def _deferred_persist_coords(self) -> None:
+        lat, lon = self._lat, self._lon
+        await asyncio.sleep(2)
+        new_data = {**self._entry.data, CONF_LAT: lat, CONF_LON: lon}
+        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+        _LOGGER.info(
+            "坐标已持久化到配置条目（%s, %s），重启后不再需要解析",
+            lat,
+            lon,
+        )
 
     async def _nearby_data(self, session):
         """附近数据（天气/预报/首要污染物），带 TTL 缓存。"""
@@ -244,6 +286,9 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         # 健康警告：除 update_time 外全为空，多半是页面/接口结构变化
         if all(v is None for k, v in data.items() if k != "update_time"):
             _LOGGER.warning("所有解析字段均为空，请检查站点结构是否变化。place: %s", self.place)
+
+        # 数据更新成功后再考虑持久化坐标（推迟到第 2 次刷新，避开 setup 期 reload）
+        await self._maybe_persist_coords()
 
         return data
 

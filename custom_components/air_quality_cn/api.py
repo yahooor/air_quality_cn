@@ -189,7 +189,7 @@ async def post_json(session, endpoint, params, timeout=15):
     return payload
 
 
-async def get_search_results(session, term, timeout=10):
+async def get_search_results(session, term, timeout=20):
     """地点搜索，返回结果列表。"""
     url = f"{BASE_URL}{EP_SEARCH}?term={quote(term)}&lang=zh-Hans"
     try:
