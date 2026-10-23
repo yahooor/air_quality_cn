@@ -111,7 +111,6 @@ class AirQualityWeather(CoordinatorEntity, WeatherEntity):
         return {
             "forecast_daily_count": len(data.get("wf_daily") or []),
             "forecast_hourly_count": len(data.get("wf_hourly") or []),
-            "data_keys": sorted(data.keys()),
         }
 
     async def async_forecast_daily(self) -> list[Forecast] | None:
