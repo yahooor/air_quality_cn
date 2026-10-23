@@ -5,11 +5,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 # 预导入平台模块：集成模块本身由 loader 在执行器线程导入，
-# 在此处一并导入 sensor 可避免 async_forward_entry_setups 在事件循环内做磁盘导入
+# 在此处一并导入各平台可避免 async_forward_entry_setups 在事件循环内做磁盘导入
 from . import sensor as _sensor  # noqa: F401  预导入，见上
+from . import weather as _weather  # noqa: F401  预导入，见上
 from .const import DOMAIN, CONF_PLACE_NAME, CONF_STANDARD, CONF_SCAN_INTERVAL
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "weather"]
 
 _LOGGER = logging.getLogger(__name__)
 

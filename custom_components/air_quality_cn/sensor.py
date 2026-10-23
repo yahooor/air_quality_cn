@@ -242,13 +242,14 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         )
 
     async def _nearby_data(self, session):
-        """附近数据（天气/预报/首要污染物），带 TTL 缓存。"""
+        """附近数据（天气/预报/首要污染物/天气预报），带 TTL 缓存。"""
         ts, cached = self._nearby_cache
         now = time.monotonic()
         if now - ts < NEARBY_CACHE_TTL:
             return cached
         payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
         parsed = api.parse_nearby(payload)
+        parsed.update(api.parse_weather_forecast(payload))
         self._nearby_cache = (now, parsed)
         return parsed
 

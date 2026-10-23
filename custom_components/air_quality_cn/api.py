@@ -132,6 +132,72 @@ _WEATHER_PREFIX_ZH = (
     ("wind", "大风"),
 )
 
+# 站点天气图标代码（Wunderground 风格）→ HA weather condition。
+# nt_ 前缀表示夜间；未列出的代码回退按 weather 文本推断
+WEATHER_ICON_CONDITION = {
+    "clear": "sunny",
+    "nt_clear": "clear-night",
+    "mostlysunny": "sunny",
+    "nt_mostlysunny": "clear-night",
+    "partlycloudy": "partly-cloudy",
+    "nt_partlycloudy": "clear-night",
+    "partly_cloudy": "partly-cloudy",
+    "nt_partly_cloudy": "clear-night",
+    "mostlycloudy": "cloudy",
+    "nt_mostlycloudy": "cloudy",
+    "cloudy": "cloudy",
+    "nt_cloudy": "cloudy",
+    "overcast": "cloudy",
+    "rain": "rainy",
+    "nt_rain": "rainy",
+    "chancerain": "rainy",
+    "nt_chancerain": "rainy",
+    "chancerain_day": "rainy",
+    "tstorms": "lightning-rainy",
+    "nt_tstorms": "lightning-rainy",
+    "chancetstorms": "lightning-rainy",
+    "snow": "snowy",
+    "nt_snow": "snowy",
+    "chancesnow": "snowy",
+    "flurries": "snowy",
+    "sleet": "snowy-rainy",
+    "nt_sleet": "snowy-rainy",
+    "chancesleet": "snowy-rainy",
+    "fog": "fog",
+    "hazy": "fog",
+    "nt_hazy": "fog",
+    "windy": "windy",
+    "nt_windy": "windy",
+}
+
+# 天气文本（OpenWeatherMap 风格）→ HA weather condition（前缀匹配）
+_WEATHER_TEXT_CONDITION = (
+    ("thunderstorm", "lightning-rainy"),
+    ("drizzle", "rainy"),
+    ("heavy rain", "pouring"),
+    ("very heavy rain", "pouring"),
+    ("moderate rain", "rainy"),
+    ("light rain", "rainy"),
+    ("shower rain", "rainy"),
+    ("rain", "rainy"),
+    ("snow", "snowy"),
+    ("sleet", "snowy-rainy"),
+    ("scattered clouds", "partly-cloudy"),
+    ("broken clouds", "cloudy"),
+    ("few clouds", "partly-cloudy"),
+    ("overcast", "cloudy"),
+    ("clouds", "cloudy"),
+    ("clear", "sunny"),
+    ("mist", "fog"),
+    ("fog", "fog"),
+    ("haze", "fog"),
+    ("dust", "fog"),
+    ("sand", "fog"),
+    ("squall", "windy"),
+    ("tornado", "windy"),
+    ("wind", "windy"),
+)
+
 NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 _QUOTE_RE = r"['\"]"
 _UTC = timezone.utc
@@ -336,6 +402,74 @@ async def fetch_nearby(session, lat, lon, standard, timeout=30):
     return await post_json(session, EP_NEARBY, {
         "lat": lat, "lon": lon, "standard": standard, "lang": "zh-Hans",
     }, timeout=timeout)
+
+
+def weather_condition(icon=None, text=None):
+    """图标代码 / 天气文本 → HA weather condition 字符串。"""
+    if icon:
+        cond = WEATHER_ICON_CONDITION.get(str(icon).strip())
+        if cond:
+            return cond
+    if text:
+        t = str(text).strip().lower()
+        for matcher in (lambda s, p: s.startswith(p), lambda s, p: p in s):
+            for prefix, cond in _WEATHER_TEXT_CONDITION:
+                if matcher(t, prefix):
+                    return cond
+    return None
+
+
+def _forecast_item(src, daytime=True):
+    """预报点 → HA Forecast 字典（datetime 为 UTC ISO 字符串）。"""
+    when = parse_site_time(src.get("time"))
+    if when is None:
+        return None
+    item = {
+        "datetime": when.isoformat(),
+        "is_daytime": daytime,
+    }
+    condition = weather_condition(src.get("icon"), src.get("weather"))
+    if condition:
+        item["condition"] = condition
+    for src_key, dst_key in (
+        ("temp_c", "native_temperature"),
+        ("high", "native_temperature"),
+        ("low", "native_templow"),
+        ("feel_like", "native_apparent_temperature"),
+        ("feel_like_day", "native_apparent_temperature"),
+        ("wind_kph", "native_wind_speed"),
+        ("wind_degrees", "wind_bearing"),
+        ("humidity", "humidity"),
+        ("UV", "uv_index"),
+    ):
+        value = _to_float(src.get(src_key))
+        if value is not None and dst_key not in item:
+            item[dst_key] = value
+    pop = _to_float(src.get("pop"))
+    if pop is not None:
+        item["precipitation_probability"] = int(pop)
+    return item
+
+
+def parse_weather_forecast(payload):
+    """附近数据响应 → {'hourly': [Forecast], 'daily': [Forecast]}。
+
+    hourly 覆盖未来 48h；daily 覆盖约 11 天（站点 high/low 为日最高/最低）。
+    """
+    out = {"hourly": [], "daily": []}
+    nearby = (payload.get("data") or {}).get("nearby") or []
+    if not nearby:
+        return out
+    wf = nearby[0].get("weather_forecast") or {}
+    for p in wf.get("hourly") or []:
+        item = _forecast_item(p, daytime=not str(p.get("icon", "")).startswith("nt"))
+        if item:
+            out["hourly"].append(item)
+    for p in wf.get("daily") or []:
+        item = _forecast_item(p)
+        if item:
+            out["daily"].append(item)
+    return out
 
 
 def parse_nearby(payload):

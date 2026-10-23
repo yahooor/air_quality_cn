@@ -219,3 +219,55 @@ def test_build_place_url():
 def test_parse_weather_empty():
     assert api.parse_weather({}) == {}
     assert api.parse_weather(None) == {}
+
+
+# ─── weather 平台数据 ────────────────────────────────────────────
+
+def test_weather_condition():
+    assert api.weather_condition(icon="clear") == "sunny"
+    assert api.weather_condition(icon="nt_clear") == "clear-night"
+    assert api.weather_condition(icon="rain") == "rainy"
+    assert api.weather_condition(icon="tstorms") == "lightning-rainy"
+    assert api.weather_condition(icon="partly_cloudy") == "partly-cloudy"
+    # 未知图标回退到文本推断
+    assert api.weather_condition(icon="mystery", text="moderate rain") == "rainy"
+    assert api.weather_condition(icon="mystery", text="sky is clear") == "sunny"
+    # 都未知 → None；无参 → None
+    assert api.weather_condition(icon="mystery", text="weird stuff") is None
+    assert api.weather_condition() is None
+
+
+def test_parse_weather_forecast():
+    payload = load_fixture("nearby_beijing.json")
+    wf = api.parse_weather_forecast(payload)
+    assert len(wf["hourly"]) == 48
+    assert len(wf["daily"]) == 11
+
+    h0 = wf["hourly"][0]
+    # 站点时间为 UTC，datetime 必须带时区
+    assert h0["datetime"].endswith("+00:00")
+    assert h0["datetime"].startswith("2026-10-23T19:00:00")
+    assert h0["condition"] == "clear-night"  # nt_clear 且 is_daytime=False
+    assert h0["is_daytime"] is False
+    assert h0["native_temperature"] == 12.0
+    assert h0["native_apparent_temperature"] == 10.67
+    assert h0["humidity"] == 69.0
+    assert h0["native_wind_speed"] == 5.0
+    assert h0["wind_bearing"] == 208.0
+
+    d1 = wf["daily"][0]
+    assert d1["native_temperature"] == 18.0  # high
+    assert d1["native_templow"] == 10.0  # low
+    assert d1["condition"] == "sunny"  # clear + "sky is clear"
+    assert d1["is_daytime"] is True
+    assert d1["uv_index"] == 0.0
+
+    # 含降水的日期带降水概率
+    d2 = wf["daily"][1]
+    assert d2["condition"] == "rainy"
+    assert d2["precipitation_probability"] == 100
+
+
+def test_parse_weather_forecast_empty():
+    assert api.parse_weather_forecast({"success": True, "data": {"nearby": []}}) == {"hourly": [], "daily": []}
+    assert api.parse_weather_forecast({"success": True, "data": {"nearby": [{}]}}) == {"hourly": [], "daily": []}
