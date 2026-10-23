@@ -83,12 +83,12 @@ POLLEN_TYPES = {
     "过敏风险": "allergy_risk",
 }
 
-# 站点天气状况文本（英文）→ 中文
+# 站点天气状况文本（OpenWeatherMap 风格英文）→ 中文：精确匹配表
 WEATHER_TEXT_ZH = {
     "clear sky": "晴", "mostly clear": "晴", "clear": "晴",
     "few clouds": "少云", "scattered clouds": "局部多云",
     "partly cloudy": "多云", "broken clouds": "多云", "cloudy": "多云",
-    "overcast": "阴",
+    "overcast": "阴", "overcast clouds": "阴",
     "light rain": "小雨", "moderate rain": "中雨", "heavy rain": "大雨",
     "rain": "雨", "drizzle": "毛毛雨", "shower": "阵雨",
     "light snow": "小雪", "heavy snow": "大雪", "snow": "雪",
@@ -96,6 +96,41 @@ WEATHER_TEXT_ZH = {
     "mist": "薄雾", "fog": "雾", "haze": "霾", "smoke": "烟尘", "dust": "沙尘",
     "thunderstorm": "雷雨", "windy": "大风",
 }
+
+# 前缀兜底（具体前缀在前，泛化前缀在后）
+_WEATHER_PREFIX_ZH = (
+    ("thunderstorm", "雷雨"),
+    ("heavy intensity rain", "大雨"),
+    ("very heavy rain", "大雨"),
+    ("light rain", "小雨"),
+    ("moderate rain", "中雨"),
+    ("shower rain", "阵雨"),
+    ("light intensity drizzle", "毛毛雨"),
+    ("heavy intensity drizzle", "毛毛雨"),
+    ("drizzle", "毛毛雨"),
+    ("rain", "雨"),
+    ("shower snow", "阵雪"),
+    ("light shower snow", "小阵雪"),
+    ("heavy snow", "大雪"),
+    ("light snow", "小雪"),
+    ("sleet", "雨夹雪"),
+    ("snow", "雪"),
+    ("overcast", "阴"),
+    ("scattered clouds", "局部多云"),
+    ("broken clouds", "多云"),
+    ("few clouds", "少云"),
+    ("clouds", "多云"),
+    ("clear", "晴"),
+    ("mist", "薄雾"),
+    ("fog", "雾"),
+    ("haze", "霾"),
+    ("smoke", "烟尘"),
+    ("sand", "沙尘"),
+    ("dust", "沙尘"),
+    ("squall", "飑线"),
+    ("tornado", "龙卷风"),
+    ("wind", "大风"),
+)
 
 NUM_PATTERN = r"(\d+(?:\.\d+)?)"
 _QUOTE_RE = r"['\"]"
@@ -162,7 +197,13 @@ def wind_direction_text(degrees):
 def weather_text_zh(text):
     if not text:
         return None
-    return WEATHER_TEXT_ZH.get(str(text).strip().lower(), text)
+    t = str(text).strip().lower()
+    if t in WEATHER_TEXT_ZH:
+        return WEATHER_TEXT_ZH[t]
+    for prefix, zh in _WEATHER_PREFIX_ZH:
+        if t.startswith(prefix):
+            return zh
+    return text
 
 
 # ─── HTTP 请求 ────────────────────────────────────────────────────

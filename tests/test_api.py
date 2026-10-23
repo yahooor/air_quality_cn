@@ -59,6 +59,20 @@ def test_wind_direction_text():
     assert api.wind_direction_text(None) is None
 
 
+def test_weather_text_zh():
+    # 精确匹配
+    assert api.weather_text_zh("clear sky") == "晴"
+    assert api.weather_text_zh("Overcast Clouds") == "阴"
+    # OpenWeatherMap 风格变体（前缀兜底）
+    assert api.weather_text_zh("thunderstorm with heavy rain") == "雷雨"
+    assert api.weather_text_zh("light intensity drizzle") == "毛毛雨"
+    assert api.weather_text_zh("heavy intensity rain") == "大雨"
+    assert api.weather_text_zh("scattered clouds") == "局部多云"
+    # 未知文本原样返回；空值 None
+    assert api.weather_text_zh("unknown phenomenon") == "unknown phenomenon"
+    assert api.weather_text_zh(None) is None
+
+
 # ─── 地图数据解析 ────────────────────────────────────────────────
 
 def test_parse_place_row_beijing():
