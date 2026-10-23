@@ -167,7 +167,7 @@ def weather_text_zh(text):
 
 # ─── HTTP 请求 ────────────────────────────────────────────────────
 
-async def post_json(session, endpoint, params, timeout=15):
+async def post_json(session, endpoint, params, timeout=30):
     """POST 表单并解析 JSON，失败抛 ApiError。"""
     url = f"{BASE_URL}{endpoint}"
     try:
@@ -210,7 +210,7 @@ async def get_search_results(session, term, timeout=20):
 
 # ─── 地图数据（最新读数） ─────────────────────────────────────────
 
-async def fetch_map_row(session, lat, lon, standard, place_id, timeout=15):
+async def fetch_map_row(session, lat, lon, standard, place_id, timeout=30):
     """取地图窗口数据并返回 place_id 匹配的行，未匹配返回 None。"""
     payload = await post_json(session, EP_MAP, {
         "center_lat": lat, "center_lon": lon,
@@ -247,7 +247,7 @@ def parse_place_row(row):
 
 # ─── 历史数据（更新时间 + 趋势） ─────────────────────────────────
 
-async def fetch_history(session, place_id, standard, timeout=15):
+async def fetch_history(session, place_id, standard, timeout=30):
     return await post_json(session, EP_HISTORY, {
         "place_id": place_id, "kind": "aqi",
         "standard": standard, "interval": "hourly", "lang": "zh-Hans",
@@ -291,7 +291,7 @@ def summarize_history(points):
 
 # ─── 附近数据（天气 / 首要污染物 / 预报） ─────────────────────────
 
-async def fetch_nearby(session, lat, lon, standard, timeout=15):
+async def fetch_nearby(session, lat, lon, standard, timeout=30):
     return await post_json(session, EP_NEARBY, {
         "lat": lat, "lon": lon, "standard": standard, "lang": "zh-Hans",
     }, timeout=timeout)
