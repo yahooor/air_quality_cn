@@ -16,11 +16,11 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    UnitOfDensity,
     UnitOfTemperature,
     PERCENTAGE,
     UnitOfSpeed,
-    UnitOfUVIndex,
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    UV_INDEX,
     DEGREE,
 )
 from homeassistant.core import HomeAssistant
@@ -105,12 +105,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("level",           "空气质量等级",                  None,                                     None,                               None,                         "mdi:numeric"),
         ("primary_pollutant", "首要污染物",                  None,                                     None,                               None,                         "mdi:filter-variant"),
         ("aqi_trend",       "24小时AQI趋势",                 None,                                     None,                               None,                         "mdi:trending-neutral"),
-        ("pm25",            "PM2.5",                        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("pm10",            "PM10",                         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("o3",              "臭氧 O3",                      CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.OZONE,            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("no2",             "二氧化氮 NO2",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.NITROGEN_DIOXIDE, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co",              "一氧化碳 CO",                   CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.CARBON_MONOXIDE,  SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
-        ("so2",             "二氧化硫 SO2",                  CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.SULPHUR_DIOXIDE,  SensorStateClass.MEASUREMENT, "mdi:smog"),
+        ("pm25",            "PM2.5",                        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("pm10",            "PM10",                         UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("o3",              "臭氧 O3",                      UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.OZONE,            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("no2",             "二氧化氮 NO2",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.NITROGEN_DIOXIDE, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("co",              "一氧化碳 CO",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.CARBON_MONOXIDE,  SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("so2",             "二氧化硫 SO2",                  UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.SULPHUR_DIOXIDE,  SensorStateClass.MEASUREMENT, "mdi:smog"),
         # 花粉（花粉季之外均为 None，属正常）
         ("pollen",          "花粉浓度",                      None,                                     None,                               None,                         "mdi:flower-pollen"),
         ("pollen_max",      "花粉浓度范围最大值",             None,                                     None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
@@ -129,7 +129,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("wind_speed",      "风速",                          UnitOfSpeed.KILOMETERS_PER_HOUR,          SensorDeviceClass.WIND_SPEED,       SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
         ("wind_direction",  "风向",                          None,                                     None,                               None,                         "mdi:compass"),
         ("wind_degrees",    "风向角度",                      DEGREE,                                   None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
-        ("uv_index",        "紫外线指数",                    UnitOfUVIndex.UV_INDEX,                   SensorDeviceClass.UV_INDEX,         SensorStateClass.MEASUREMENT, "mdi:weather-sunny"),
+        ("uv_index",        "紫外线指数",                    UV_INDEX,                                 None,                               SensorStateClass.MEASUREMENT, "mdi:weather-sunny"),
         ("update_time",     "数据更新时间",                  None,                                     SensorDeviceClass.TIMESTAMP,        None,                         "mdi:clock"),
     ]
 
