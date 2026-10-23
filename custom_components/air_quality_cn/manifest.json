@@ -5,10 +5,12 @@
     "@yahooor"
   ],
   "config_flow": true,
-  "options_flow": true,
+  "dependencies": [],
   "documentation": "https://github.com/yahooor/air_quality_cn",
+  "integration_type": "service",
   "iot_class": "cloud_polling",
+  "options_flow": true,
   "requirements": [],
-  "version": "2.6.3",
+  "version": "3.0.0",
   "issue_tracker": "https://github.com/yahooor/air_quality_cn/issues"
 }
