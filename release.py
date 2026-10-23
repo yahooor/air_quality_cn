@@ -2,12 +2,15 @@
 """
 release.py — air_quality_cn 一键发布脚本
 
+版本号规则（2026.10.24 起）：日期版本 CalVer `YYYY.M.D`，
+同日多次发版为 `YYYY.M.D-N`（N 从 2 起）。此前 SemVer 标签保留不动。
+
 用法:
-    python release.py <版本号> "<更新日志>"
-    python release.py 2.7.0 "新增紫外线预警功能"
+    python release.py 2026.10.24 "<更新日志>"
+    python release.py 2026.10.24-2 "新增紫外线预警功能"
 
 功能:
-    1. Preflight 检查（工作区干净、远程 tag 不重复、Token 获取）
+    1. Preflight 检查（工作区干净、本地已推送、远程 tag 不重复、Token 获取）
     2. 更新 manifest.json 版本号
     3. 通过 Git Data API 提交所有变更（绕过 git push 网络问题）
     4. 创建 Git Tag

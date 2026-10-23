@@ -15,15 +15,8 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
+from homeassistant import const as ha_const
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    UnitOfDensity,
-    UnitOfTemperature,
-    PERCENTAGE,
-    UnitOfSpeed,
-    UV_INDEX,
-    DEGREE,
-)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -47,6 +40,31 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _dc(name: str):
+    """SensorDeviceClass 成员按名获取；HA 版本差异移除时返回 None 优雅降级。"""
+    return getattr(SensorDeviceClass, name, None)
+
+
+def _unit(section: str, name: str, fallback: str):
+    """homeassistant.const 枚举单位按名获取；缺失时回退到等值字符串。"""
+    enum_cls = getattr(ha_const, section, None)
+    return getattr(enum_cls, name, fallback) if enum_cls is not None else fallback
+
+
+def _const(name: str, fallback: str):
+    """homeassistant.const 顶层常量按名获取；缺失时回退到等值字符串。"""
+    return getattr(ha_const, name, fallback)
+
+
+# 单位常量（等值回退，避免 HA 移除枚举时 import 失败导致整个平台无法加载）
+UGM3 = _unit("UnitOfDensity", "MICROGRAMS_PER_CUBIC_METER", "μg/m³")
+CELSIUS = _unit("UnitOfTemperature", "CELSIUS", "°C")
+PERCENT = _const("PERCENTAGE", "%")
+KPH = _unit("UnitOfSpeed", "KILOMETERS_PER_HOUR", "km/h")
+UVI = _const("UV_INDEX", "UV index")
+DEG = _const("DEGREE", "°")
 
 # 附近数据（天气/预报/首要污染物）缓存时长（秒）
 NEARBY_CACHE_TTL = 3 * 3600
@@ -106,16 +124,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     # (key, 显示名, 单位, device_class, state_class, icon)
     sensor_defs = [
-        ("aqi",             "AQI",                         None,                                     SensorDeviceClass.AQI,              SensorStateClass.MEASUREMENT, "mdi:air-filter"),
+        ("aqi",             "AQI",                         None,                                     _dc("AQI"),              SensorStateClass.MEASUREMENT, "mdi:air-filter"),
         ("level",           "空气质量等级",                  None,                                     None,                               None,                         "mdi:numeric"),
         ("primary_pollutant", "首要污染物",                  None,                                     None,                               None,                         "mdi:filter-variant"),
         ("aqi_trend",       "24小时AQI趋势",                 None,                                     None,                               None,                         "mdi:trending-neutral"),
-        ("pm25",            "PM2.5",                        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM25,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("pm10",            "PM10",                         UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.PM10,             SensorStateClass.MEASUREMENT, "mdi:blur"),
-        ("o3",              "臭氧 O3",                      UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.OZONE,            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("no2",             "二氧化氮 NO2",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.NITROGEN_DIOXIDE, SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
-        ("co",              "一氧化碳 CO",                   UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, None,                               SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
-        ("so2",             "二氧化硫 SO2",                  UnitOfDensity.MICROGRAMS_PER_CUBIC_METER, SensorDeviceClass.SULPHUR_DIOXIDE,  SensorStateClass.MEASUREMENT, "mdi:smog"),
+        ("pm25",            "PM2.5",                        UGM3, _dc("PM25"),             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("pm10",            "PM10",                         UGM3, _dc("PM10"),             SensorStateClass.MEASUREMENT, "mdi:blur"),
+        ("o3",              "臭氧 O3",                      UGM3, _dc("OZONE"),            SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("no2",             "二氧化氮 NO2",                   UGM3, _dc("NITROGEN_DIOXIDE"), SensorStateClass.MEASUREMENT, "mdi:gas-cylinder"),
+        ("co",              "一氧化碳 CO",                   UGM3, None,                               SensorStateClass.MEASUREMENT, "mdi:molecule-co"),
+        ("so2",             "二氧化硫 SO2",                  UGM3, _dc("SULPHUR_DIOXIDE"),  SensorStateClass.MEASUREMENT, "mdi:smog"),
         # 花粉（花粉季之外均为 None，属正常）
         ("pollen",          "花粉浓度",                      None,                                     None,                               None,                         "mdi:flower-pollen"),
         ("pollen_max",      "花粉浓度范围最大值",             None,                                     None,                               SensorStateClass.MEASUREMENT, "mdi:chart-line"),
@@ -128,14 +146,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ("allergy_risk",    "过敏风险指数",                  None,                                     None,                               SensorStateClass.MEASUREMENT, "mdi:allergy"),
         # 天气
         ("weather_condition", "天气状况",                    None,                                     None,                               None,                         "mdi:weather-cloudy"),
-        ("temperature",     "温度",                          UnitOfTemperature.CELSIUS,                SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer"),
-        ("feel_like",       "体感温度",                      UnitOfTemperature.CELSIUS,                SensorDeviceClass.TEMPERATURE,      SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-        ("humidity",        "湿度",                          PERCENTAGE,                               SensorDeviceClass.HUMIDITY,         SensorStateClass.MEASUREMENT, "mdi:water-percent"),
-        ("wind_speed",      "风速",                          UnitOfSpeed.KILOMETERS_PER_HOUR,          SensorDeviceClass.WIND_SPEED,       SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
+        ("temperature",     "温度",                          CELSIUS,                _dc("TEMPERATURE"),      SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+        ("feel_like",       "体感温度",                      CELSIUS,                _dc("TEMPERATURE"),      SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
+        ("humidity",        "湿度",                          PERCENT,                               _dc("HUMIDITY"),         SensorStateClass.MEASUREMENT, "mdi:water-percent"),
+        ("wind_speed",      "风速",                          KPH,          _dc("WIND_SPEED"),       SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
         ("wind_direction",  "风向",                          None,                                     None,                               None,                         "mdi:compass"),
-        ("wind_degrees",    "风向角度",                      DEGREE,                                   None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
-        ("uv_index",        "紫外线指数",                    UV_INDEX,                                 None,                               SensorStateClass.MEASUREMENT, "mdi:weather-sunny"),
-        ("update_time",     "数据更新时间",                  None,                                     SensorDeviceClass.TIMESTAMP,        None,                         "mdi:clock"),
+        ("wind_degrees",    "风向角度",                      DEG,                                   None,                               SensorStateClass.MEASUREMENT, "mdi:angle-acute"),
+        ("uv_index",        "紫外线指数",                    UVI,                                 None,                               SensorStateClass.MEASUREMENT, "mdi:weather-sunny"),
+        ("update_time",     "数据更新时间",                  None,                                     _dc("TIMESTAMP"),        None,                         "mdi:clock"),
     ]
 
     entities = [
