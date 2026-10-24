@@ -53,6 +53,31 @@ v3.0 起数据获取优先使用站点自身的 JSON 数据接口（读数、按
 - **AQI 标准**：切换后自动重新加载数据，无需删除重加
 - **刷新间隔**：默认 30 分钟，最小 5 分钟
 
+### 服务
+
+- `air_quality_cn.refresh`：强制刷新所有地点（跳过天气/预报的 3 小时缓存）。可在自动化中调用，如每天早晨 7 点刷新一次。
+
+### 仪表盘示例
+
+把天气 + AQI 组合在一张卡片（需要 `custom:weather-card` 或用内置天气卡片）：
+
+```yaml
+type: vertical-stack
+cards:
+  - type: weather-forecast
+    entity: weather.zai_yi_kong_qi_zhao_yang_qu
+  - type: entities
+    entities:
+      - entity: sensor.zai_yi_kong_qi_zhao_yang_qu_aqi
+        name: AQI
+      - entity: sensor.zai_yi_kong_qi_zhao_yang_qu_kong_qi_zhi_liang_deng_ji
+        name: 等级
+      - entity: sensor.zai_yi_kong_qi_zhao_yang_qu_pm2_5
+        name: PM2.5
+      - entity: sensor.zai_yi_kong_qi_zhao_yang_qu_shou_yao_wu_ran_wu
+        name: 首要污染物
+```
+
 ## 传感器
 
 | 传感器 | 说明 |
@@ -73,6 +98,11 @@ v3.0 起数据获取优先使用站点自身的 JSON 数据接口（读数、按
 | update_time | 数据更新时间（站点时间为 UTC，HA 自动转换为本机时区显示） |
 
 ## 更新日志
+
+### 2026.10.25-4 (2026-10-25)
+
+- **优化**：AQI 传感器属性新增 `update_age_minutes`（站点数据更新距今分钟数，便于识别数据陈旧）
+- **文档**：README 新增仪表盘卡片示例；refresh 服务补全中文翻译
 
 ### 2026.10.25 (2026-10-25)
 

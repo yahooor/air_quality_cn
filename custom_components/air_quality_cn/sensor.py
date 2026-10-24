@@ -383,6 +383,14 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
                     attrs[dst] = data[src]
             if data.get("forecast"):
                 attrs["forecast"] = data["forecast"]
+            # 数据新鲜度：站点数据更新时间距今多少分钟（上游每小时整点更新）
+            updated = data.get("update_time")
+            if isinstance(updated, datetime):
+                if updated.tzinfo is None:
+                    updated = updated.replace(tzinfo=timezone.utc)
+                attrs["update_age_minutes"] = int(
+                    (datetime.now(timezone.utc) - updated).total_seconds() // 60
+                )
         return attrs
 
     @property
