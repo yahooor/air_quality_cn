@@ -1,8 +1,10 @@
 """Air Quality CN - Home Assistant 自定义集成"""
 import logging
 
+import voluptuous as vol
+
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 
 # 预导入平台模块：集成模块本身由 loader 在执行器线程导入，
 # 在此处一并导入各平台可避免 async_forward_entry_setups 在事件循环内做磁盘导入
@@ -21,7 +23,32 @@ from .sensor import AirQualityCoordinator
 
 PLATFORMS = ["sensor", "weather"]
 
+SERVICE_REFRESH = "refresh"
+
+REFRESH_SCHEMA = vol.Schema({})
+
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup(hass: HomeAssistant, config) -> bool:
+    """注册集成级服务。"""
+    hass.data.setdefault(DOMAIN, {})
+
+    async def async_handle_refresh(call: ServiceCall) -> None:
+        """强制刷新所有地点：跳过天气/预报缓存，立即拉取全部数据。"""
+        coordinators = [
+            store.get("coordinator")
+            for store in hass.data[DOMAIN].values()
+            if store.get("coordinator") is not None
+        ]
+        for coordinator in coordinators:
+            await coordinator.async_request_refresh_forced()
+        _LOGGER.info("手动刷新完成: %d 个数据协调器", len(coordinators))
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_REFRESH, async_handle_refresh, schema=REFRESH_SCHEMA
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

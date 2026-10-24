@@ -332,13 +332,20 @@ async def fetch_map_row(session, lat, lon, standard, place_id, timeout=30):
 
 
 def parse_place_row(row):
-    """地图行 → 传感器数据字典（读数 + 各自等级）。"""
+    """地图行 → 传感器数据字典（读数 + 各自等级）。
+
+    data["readings_kinds"] 记录该地点实际提供的读数 kind 集合，
+    供"上游无数据"传感器生成说明属性。
+    """
     data = {}
     pollen_raw = None
+    kinds = set()
     for r in (row.get("latest") or {}).get("readings") or []:
-        key = KIND_TO_KEY.get(r.get("kind"))
+        kind = r.get("kind")
+        key = KIND_TO_KEY.get(kind)
         if not key:
             continue
+        kinds.add(kind)
         raw = r.get("value")
         data[key] = parse_numeric(raw)
         if r.get("level"):
@@ -349,6 +356,7 @@ def parse_place_row(row):
         data["level"] = data["aqi_level"]
     data["pollen"] = pollen_raw
     data["pollen_max"] = data.get("pollen_total")
+    data["readings_kinds"] = sorted(kinds)
     return data
 
 

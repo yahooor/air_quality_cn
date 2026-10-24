@@ -89,6 +89,9 @@ def test_parse_place_row_beijing():
     assert data["co"] == 800.0
     assert data["o3"] == 22.0
     assert data["so2"] == 3.0
+    # readings_kinds 记录实际提供的 kind（用于"上游无数据"说明属性）
+    assert isinstance(data["readings_kinds"], list)
+    assert set(data["readings_kinds"]) == {"aqi", "pm25", "pm10", "no2", "co", "o3", "so2"}
     # 北京无花粉数据：相关 key 不应存在
     assert data.get("pollen_birch") is None
     assert data.get("allergy_risk") is None

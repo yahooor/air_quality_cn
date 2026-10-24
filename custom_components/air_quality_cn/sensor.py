@@ -160,6 +160,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         self._lat = entry.data.get(CONF_LAT) or store.get("lat")
         self._lon = entry.data.get(CONF_LON) or store.get("lon")
         self._nearby_cache = (0.0, {})
+        self._force_skip_cache = False
         # 坐标解析状态：成功后待持久化 / 失败退避时间戳（monotonic）
         self._coords_persisted = entry.data.get(CONF_LAT) is not None
         self._resolve_failed_at = 0.0
@@ -227,7 +228,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         """附近数据（天气/预报/首要污染物/天气预报），带 TTL 缓存。"""
         ts, cached = self._nearby_cache
         now = time.monotonic()
-        if now - ts < NEARBY_CACHE_TTL:
+        if now - ts < NEARBY_CACHE_TTL and not self._force_skip_cache:
             return cached
         payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
         parsed = api.parse_nearby(payload)
@@ -236,6 +237,14 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         parsed["wf_daily"] = wf.get("daily") or []
         self._nearby_cache = (now, parsed)
         return parsed
+
+    async def async_request_refresh_forced(self):
+        """手动刷新：跳过 nearby 缓存，立即拉取全部数据。"""
+        self._force_skip_cache = True
+        try:
+            await self.async_request_refresh()
+        finally:
+            self._force_skip_cache = False
 
     async def _async_update_data(self):
         session = async_get_clientsession(self.hass)
@@ -348,6 +357,20 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
         level = data.get(f"{self._key}_level")
         if level is not None:
             attrs["level"] = level
+        # 无数据的传感器给出说明：数据是站点没提供还是暂缺
+        if (data.get(self._key) is None) and self._key != "update_time":
+            kinds = data.get("readings_kinds")
+            key_to_kind = {v: k for k, v in api.KIND_TO_KEY.items()}
+            if kinds is not None and self._key in POLLEN_KEYS:
+                attrs["note"] = (
+                    "该监测点当前未提供花粉数据（花粉数据主要由欧洲监测点提供，季节性恢复）"
+                    if not any(key_to_kind.get(k) in ("pollen", "betu", "poac", "alnu", "olea", "ambr", "arte", "ar") for k in kinds)
+                    else "花粉暂无上报（花粉季外属正常）"
+                )
+            elif kinds is not None:
+                kind = key_to_kind.get(self._key)
+                if kind and kind not in kinds:
+                    attrs["note"] = "该监测点的数据源不提供此污染物"
         if self._key == "aqi":
             for src, dst in (
                 ("aqi_trend", "trend"),
