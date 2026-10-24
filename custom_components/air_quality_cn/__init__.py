@@ -31,8 +31,15 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup(hass: HomeAssistant, config) -> bool:
-    """注册集成级服务。"""
+    """组件级 setup（YAML 配置时调用）；服务注册在首个 entry setup 中完成。"""
     hass.data.setdefault(DOMAIN, {})
+    return True
+
+
+def _register_services(hass: HomeAssistant) -> None:
+    """注册集成服务（幂等）。"""
+    if hass.services.has_service(DOMAIN, SERVICE_REFRESH):
+        return
 
     async def async_handle_refresh(call: ServiceCall) -> None:
         """强制刷新所有地点：跳过天气/预报缓存，立即拉取全部数据。"""
@@ -48,7 +55,12 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
     hass.services.async_register(
         DOMAIN, SERVICE_REFRESH, async_handle_refresh, schema=REFRESH_SCHEMA
     )
-    return True
+    _LOGGER.info("已注册服务 air_quality_cn.%s", SERVICE_REFRESH)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    hass.data.setdefault(DOMAIN, {})
+    _register_services(hass)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
