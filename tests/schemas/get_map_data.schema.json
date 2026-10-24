@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "air-quality.com data/get_map_data contract",
+  "type": "object",
+  "required": ["success", "data"],
+  "additionalProperties": true,
+  "properties": {
+    "success": {"type": "boolean", "const": true},
+    "data": {
+      "type": "object",
+      "required": ["map"],
+      "additionalProperties": true,
+      "properties": {
+        "map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["place", "latest"],
+            "additionalProperties": true,
+            "properties": {
+              "place": {
+                "type": "object",
+                "required": ["place_id", "name"],
+                "additionalProperties": true,
+                "properties": {
+                  "place_id": {"type": "string"},
+                  "name": {"type": "string"},
+                  "type": {"type": "string"}
+                }
+              },
+              "latest": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "readings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["kind"],
+                      "additionalProperties": true,
+                      "properties": {
+                        "kind": {"type": "string"},
+                        "value": {},
+                        "level": {"type": ["string", "null"]},
+                        "unit": {"type": ["string", "null"]},
+                        "name": {"type": ["string", "null"]},
+                        "type": {"type": ["string", "null"]},
+                        "ratio": {"type": ["number", "null"]}
+                      }
+                    }
+                  },
+                  "update_time": {"type": ["string", "null"]},
+                  "weather": {"type": ["object", "null"]}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -21,9 +21,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import api
 from .const import (
-    DOMAIN,
     CONF_PLACE,
     CONF_PLACE_NAME,
+    DOMAIN,
 )
 from .sensor import AirQualityCoordinator
 

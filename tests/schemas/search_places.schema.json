@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "air-quality.com data/search_places contract",
+  "type": "array",
+  "minItems": 0,
+  "items": {
+    "type": "object",
+    "required": ["place_id", "name", "type"],
+    "additionalProperties": true,
+    "properties": {
+      "place_id": {"type": "string"},
+      "name": {"type": "string"},
+      "type": {"type": "string"},
+      "url_key": {"type": "string"},
+      "description": {"type": "string"},
+      "lat": {"type": "number"},
+      "lon": {"type": "number"}
+    }
+  }
+}

@@ -192,7 +192,7 @@ def check_local_pushed():
     if local != remote:
         fail(f"本地 {BRANCH} 与远程不一致（存在未推送提交），请先执行:")
         print(f"  git push origin {BRANCH}")
-        print(f"  否则 sync_local 的 reset --hard 会丢弃这些提交")
+        print("  否则 sync_local 的 reset --hard 会丢弃这些提交")
         return False
     return True
 
@@ -385,8 +385,8 @@ def git_commit_via_api(token, version, commit_message):
     )
     if not update:
         fail(f"更新分支引用失败。Commit 已创建: {commit_sha}")
-        print(f"\n  恢复建议: 手动更新分支引用:")
-        print(f'  curl -X PATCH -H "Authorization: token <TOKEN>" \\')
+        print("\n  恢复建议: 手动更新分支引用:")
+        print('  curl -X PATCH -H "Authorization: token <TOKEN>" \\')
         print(f'    https://api.github.com/repos/{OWNER}/{REPO}/git/refs/heads/{BRANCH} \\')
         print(f'    -d \'{{"sha": "{commit_sha}"}}\'')
         return None
@@ -412,8 +412,8 @@ def create_tag(commit_sha, tag_name, token):
     )
     if not result:
         fail(f"创建 tag 失败。Commit 已推送: {commit_sha}")
-        print(f"\n  恢复建议: 手动创建 tag:")
-        print(f'  curl -X POST -H "Authorization: token <TOKEN>" \\')
+        print("\n  恢复建议: 手动创建 tag:")
+        print('  curl -X POST -H "Authorization: token <TOKEN>" \\')
         print(f'    https://api.github.com/repos/{OWNER}/{REPO}/git/refs \\')
         print(f'    -d \'{{"ref": "refs/tags/{tag_name}", "sha": "{commit_sha}"}}\'')
         return False
@@ -441,7 +441,7 @@ def create_release(tag_name, version, changelog, token):
     )
     if not result:
         fail(f"创建 Release 失败。Tag 已创建: {tag_name}")
-        print(f"\n  恢复建议: 手动创建 Release:")
+        print("\n  恢复建议: 手动创建 Release:")
         print(f'  打开 https://github.com/{OWNER}/{REPO}/releases/new?tag={tag_name}')
         return False
 
@@ -456,10 +456,10 @@ def sync_local(tag_name):
     try:
         subprocess.run(["git", "fetch", "origin", BRANCH], timeout=30, check=True)
         subprocess.run(["git", "reset", "--hard", f"origin/{BRANCH}"], timeout=5, check=True)
-        ok(f"本地 main 已同步到远程")
+        ok("本地 main 已同步到远程")
     except Exception as e:
         warn(f"同步本地失败（不影响发布）: {e}")
-        print(f"  稍后网络恢复后运行: git fetch origin && git reset --hard origin/main")
+        print("  稍后网络恢复后运行: git fetch origin && git reset --hard origin/main")
 
 
 # ─── 主流程 ──────────────────────────────────────────────────────

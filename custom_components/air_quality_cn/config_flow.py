@@ -2,25 +2,25 @@
 config_flow.py for air_quality_cn integration
 支持搜索式地点查找，3 步完成配置：搜索 → 选择 → AQI 标准
 """
-import voluptuous as vol
 import logging
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import api
 from .const import (
-    DOMAIN,
-    DEFAULT_STANDARD,
-    DEFAULT_SCAN_INTERVAL,
-    STANDARDS,
-    CONF_PLACE,
-    CONF_STANDARD,
-    CONF_SCAN_INTERVAL,
-    CONF_PLACE_NAME,
     CONF_LAT,
     CONF_LON,
+    CONF_PLACE,
+    CONF_PLACE_NAME,
+    CONF_SCAN_INTERVAL,
+    CONF_STANDARD,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_STANDARD,
+    DOMAIN,
+    STANDARDS,
 )
 
 _LOGGER = logging.getLogger(__name__)

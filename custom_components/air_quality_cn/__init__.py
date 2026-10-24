@@ -2,7 +2,6 @@
 import logging
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 
@@ -11,13 +10,13 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from . import sensor as _sensor  # noqa: F401  预导入，见上
 from . import weather as _weather  # noqa: F401  预导入，见上
 from .const import (
-    DOMAIN,
     CONF_PLACE,
     CONF_PLACE_NAME,
-    CONF_STANDARD,
     CONF_SCAN_INTERVAL,
-    DEFAULT_STANDARD,
+    CONF_STANDARD,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_STANDARD,
+    DOMAIN,
 )
 from .sensor import AirQualityCoordinator
 

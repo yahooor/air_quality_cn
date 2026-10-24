@@ -10,33 +10,29 @@ import logging
 import time
 from datetime import datetime, timedelta, timezone
 
+from homeassistant import const as ha_const
 from homeassistant.components.sensor import (
-    SensorEntity,
     SensorDeviceClass,
+    SensorEntity,
     SensorStateClass,
 )
-from homeassistant import const as ha_const
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
     CoordinatorEntity,
+    DataUpdateCoordinator,
     UpdateFailed,
 )
 
 from . import api
 from .const import (
-    DOMAIN,
-    CONF_PLACE,
-    CONF_PLACE_NAME,
-    CONF_STANDARD,
-    CONF_SCAN_INTERVAL,
     CONF_LAT,
     CONF_LON,
-    DEFAULT_STANDARD,
-    DEFAULT_SCAN_INTERVAL,
+    CONF_PLACE,
+    CONF_PLACE_NAME,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)

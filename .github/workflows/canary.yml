@@ -1,0 +1,20 @@
+name: Canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 21 * * *"  # 每日 05:17 北京时间
+
+jobs:
+  contract-canary:
+    name: 上游契约 canary（线上实测）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: pip install jsonschema
+      - name: 实测线上接口并校验契约
+        run: python tests/canary.py
