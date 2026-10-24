@@ -62,10 +62,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     _register_services(hass)
 
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.data.setdefault(DOMAIN, {})
-
     # coordinator 在集成级创建，sensor/weather 两平台共享，避免平台加载竞态
     place = entry.data[CONF_PLACE]
     place_id = place.strip("/").split("/")[-1]
