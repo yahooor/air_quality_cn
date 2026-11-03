@@ -1,0 +1,11 @@
+# 开发/测试依赖（2026-11-03 补）
+#
+# 此前本仓库没有任何依赖声明，干净环境 clone 后直接跑 pytest 会失败：
+#   - tests/canary.py 需要 jsonschema（契约校验）
+#   - custom_components/api.py 需要 aiohttp
+#
+# 安装：pip install -r requirements-dev.txt
+pytest>=8
+jsonschema>=4
+aiohttp>=3.9
+ruff>=0.7
