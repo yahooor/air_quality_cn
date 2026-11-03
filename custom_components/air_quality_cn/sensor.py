@@ -65,12 +65,7 @@ DEG = _const("DEGREE", "°")
 # 附近数据（天气/预报/首要污染物）缓存时长（秒）
 NEARBY_CACHE_TTL = 3 * 3600
 
-# 花粉传感器 key 集合（非花粉季值为 None 属正常，视为"可用但无数据"）
-POLLEN_KEYS = {
-    "pollen", "pollen_max", "pollen_total", "pollen_birch", "pollen_grass",
-    "pollen_alder", "pollen_olive", "pollen_ragweed",
-    "pollen_mugwort", "allergy_risk",
-}
+# 花粉传感器 key 集合已移至 api.POLLEN_SENSOR_KEYS（与 missing_data_note 同处，便于单测）
 
 # 天气图标代码 → mdi
 WEATHER_ICON_MAP = {
@@ -354,19 +349,9 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
         if level is not None:
             attrs["level"] = level
         # 无数据的传感器给出说明：数据是站点没提供还是暂缺
-        if (data.get(self._key) is None) and self._key != "update_time":
-            kinds = data.get("readings_kinds")
-            key_to_kind = {v: k for k, v in api.KIND_TO_KEY.items()}
-            if kinds is not None and self._key in POLLEN_KEYS:
-                attrs["note"] = (
-                    "该监测点当前未提供花粉数据（花粉数据主要由欧洲监测点提供，季节性恢复）"
-                    if not any(key_to_kind.get(k) in ("pollen", "betu", "poac", "alnu", "olea", "ambr", "arte", "ar") for k in kinds)
-                    else "花粉暂无上报（花粉季外属正常）"
-                )
-            elif kinds is not None:
-                kind = key_to_kind.get(self._key)
-                if kind and kind not in kinds:
-                    attrs["note"] = "该监测点的数据源不提供此污染物"
+        note = api.missing_data_note(self._key, data)
+        if note:
+            attrs["note"] = note
         if self._key == "aqi":
             for src, dst in (
                 ("aqi_trend", "trend"),
@@ -391,8 +376,11 @@ class AirQualitySensor(CoordinatorEntity, SensorEntity):
 
     @property
     def available(self):
-        if not self.coordinator.last_update_success:
-            return False
-        if self._key in POLLEN_KEYS:
-            return True
-        return (self.coordinator.data or {}).get(self._key) is not None
+        """只要协调器本轮更新成功，实体就算可用。
+
+        2026-11-03 修正：此前对「值缺失」的字段返回 False，导致状态显示
+        `unavailable`（语义是"实体坏了"），且 HA 不渲染不可用实体的属性，
+        连 `note` 说明也被吞掉——用户看到一片灰，无从判断是数据源不给还是集成坏了。
+        现在统一为：值缺失 → 状态 `unknown`，并在属性里给出成因说明。
+        """
+        return self.coordinator.last_update_success

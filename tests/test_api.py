@@ -274,3 +274,50 @@ def test_parse_weather_forecast():
 def test_parse_weather_forecast_empty():
     assert api.parse_weather_forecast({"success": True, "data": {"nearby": []}}) == {"hourly": [], "daily": []}
     assert api.parse_weather_forecast({"success": True, "data": {"nearby": [{}]}}) == {"hourly": [], "daily": []}
+
+
+# ── 缺失数据成因说明（2026.11.3-1）────────────────────────────────────
+
+
+def test_missing_data_note_has_value_returns_none():
+    """有值就不该有说明。"""
+    assert api.missing_data_note("aqi", {"aqi": 56}) is None
+    assert api.missing_data_note("update_time", {}) is None
+
+
+def test_missing_data_note_pollen_not_provided_by_upstream():
+    """上游 kinds 里完全没有花粉类 → 说明「该监测点未提供」。"""
+    data = {"readings_kinds": ["aqi", "co", "no2", "o3", "pm10", "pm25", "so2"]}
+    note = api.missing_data_note("pollen_total", data)
+    assert note is not None and "未提供花粉数据" in note
+
+
+def test_missing_data_note_pollen_in_season_gap():
+    """上游有花粉类 kind 但本次无值 → 说明「花粉季外属正常」。"""
+    data = {"readings_kinds": ["aqi", "pm25", "pollen"]}
+    note = api.missing_data_note("pollen_total", data)
+    assert note is not None and "花粉季外" in note
+
+
+def test_missing_data_note_pollutant_not_in_kinds():
+    """站点不提供某污染物（如永定新区无 CO/SO2）→ 说明「数据源不提供」。"""
+    data = {"readings_kinds": ["aqi", "no2", "o3", "pm10", "pm25"]}
+    assert "不提供此污染物" in (api.missing_data_note("co", data) or "")
+    assert "不提供此污染物" in (api.missing_data_note("so2", data) or "")
+
+
+def test_missing_data_note_primary_pollutant_when_aqi_good():
+    """AQI≤50（优）时按标准不存在首要污染物。"""
+    note = api.missing_data_note("primary_pollutant", {"aqi": 32})
+    assert note is not None and "不存在首要污染物" in note
+
+
+def test_missing_data_note_primary_pollutant_otherwise():
+    """AQI>50 但仍无首要污染物 → 说明是本次没取到。"""
+    note = api.missing_data_note("primary_pollutant", {"aqi": 80})
+    assert note is not None and "未获取到" in note
+
+
+def test_missing_data_note_unknown_key_returns_none():
+    """无法判断成因的字段不硬编说明。"""
+    assert api.missing_data_note("some_unknown_key", {"readings_kinds": ["aqi"]}) is None

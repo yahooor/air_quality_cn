@@ -360,8 +360,63 @@ def parse_place_row(row):
     return data
 
 
-# ─── 历史数据（更新时间 + 趋势） ─────────────────────────────────
+# ─── 缺失数据的成因说明 ───────────────────────────────────────────
+# 传感器 key（sensor.py 的 key）里的花粉类集合
+POLLEN_SENSOR_KEYS = frozenset(
+    {
+        "pollen",
+        "pollen_max",
+        "pollen_total",
+        "pollen_birch",
+        "pollen_grass",
+        "pollen_alder",
+        "pollen_olive",
+        "pollen_ragweed",
+        "pollen_mugwort",
+        "allergy_risk",
+    }
+)
 
+# 上游读数 kind 里的花粉类集合
+POLLEN_KINDS = frozenset({"pollen", "betu", "poac", "alnu", "olea", "ambr", "arte", "ar"})
+
+_KEY_TO_KIND = {v: k for k, v in KIND_TO_KEY.items()}
+
+
+def missing_data_note(key, data):
+    """字段无值时，给出「为什么没有」的人话说明。
+
+    区分三种成因，避免用户把「上游不给」误判为「集成坏了」：
+      1. 上游该监测点不提供这类数据（花粉主要由欧洲站点提供；部分站点缺 CO/SO2）
+      2. 语义上本来就不存在（AQI≤50 时按标准无首要污染物）
+      3. 本次暂缺（请求失败或未上报）
+
+    返回 None 表示有值或无需说明。
+    """
+    if key == "update_time" or data.get(key) is not None:
+        return None
+
+    kinds = data.get("readings_kinds")
+
+    if key in POLLEN_SENSOR_KEYS:
+        if kinds is not None and not any(k in POLLEN_KINDS for k in kinds):
+            return "该监测点当前未提供花粉数据（花粉数据主要由欧洲监测点提供，季节性恢复）"
+        return "花粉暂无上报（花粉季外属正常）"
+
+    if key == "primary_pollutant":
+        aqi = data.get("aqi")
+        if isinstance(aqi, (int, float)) and aqi <= 50:
+            return "空气质量为优（AQI≤50）时按标准不存在首要污染物"
+        return "本次未获取到首要污染物（附近数据接口未返回或请求失败）"
+
+    kind = _KEY_TO_KIND.get(key)
+    if kinds is not None and kind and kind not in kinds:
+        return "该监测点的数据源不提供此污染物"
+
+    return None
+
+
+# ─── 历史数据（更新时间 + 趋势） ─────────────────────────────────
 async def fetch_history(session, place_id, standard, timeout=30):
     return await post_json(session, EP_HISTORY, {
         "place_id": place_id, "kind": "aqi",
