@@ -37,6 +37,15 @@ v3.0 起数据获取优先使用站点自身的 JSON 数据接口（读数、按
 2. 解压到 `custom_components/` 目录
 3. 重启 Home Assistant
 
+## 本地开发
+
+```bash
+pip install -r requirements-dev.txt   # 测试与 lint 依赖
+pytest -q && ruff check .
+```
+
+AI 会话请先读 [AGENTS.md](AGENTS.md)——里面有发版流程、架构要点与红线。
+
 ## 配置
 
 设置 → 设备与服务 → 添加集成 → 搜索 "Air Quality CN"
