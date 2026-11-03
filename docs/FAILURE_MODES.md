@@ -47,8 +47,7 @@
 - **缓解**：无（首刷在 setup 内 await）。
 - **候选修复（下轮）**：首刷改后台任务，实体先以 unavailable 创建。**注意**：会改变"启动即有数据"行为，属行为变更，需独立评估。
 
-### FM-10 平台并发加载竞态（已修）
-- coordinator 上移集成级创建，两平台共享。
+### FM-10 平台并发加载竞态（已修）- coordinator 上移集成级创建，两平台共享。
 
 ## 发布与协作流程侧
 
@@ -64,6 +63,16 @@
 - **实测**：日志文件读取四路全阻（supervisor 透传 unknown_error / Filebrowser ingress iframe / 8124 waxgourd 需登录 / Samba 无凭据）；WAQI demo token `/feed/beijing` 返回上海站。
 - **缓解**：DB 证据（recorder）替代日志文件；第三方仲裁必须验证其自身可信度（时间戳/站名）后才能采信。
 
+### FM-14 用 `available=False` 表达「无数据」（2026-11-03 修复）
+- **现象**：上游不提供的字段（CO/SO2/花粉/首要污染物）状态显示 `unavailable`，
+  且 HA **不渲染不可用实体的 `extra_state_attributes`**，导致已有的 `note` 说明被吞掉。
+- **代价**：`unavailable` 语义是「实体坏了」，用户看到一片灰会误判为集成故障，
+  进而去重装/排障，而真实原因只是数据源不给这个字段。
+- **纪律**：`available` 只表达「协调器本轮是否更新成功」；
+  「这个字段有没有值」用 `unknown`（`native_value` 返回 `None`）表达，成因写进 `note`。
+- **同类陷阱**：`primary_pollutant` 在 AQI≤50 时按标准不存在，这不是缺失，是语义如此，
+  说明文案要区分开。
+
 ## 本轮依据证据的处置结论
 
 | 失效模式 | 本轮证据 | 处置 |
@@ -73,4 +82,5 @@
 | FM-8 | 56 实体单位 0 漂移；UV 统计恢复 | 无需行动 |
 | FM-9 | 刷新窗口内 0 告警 | 下轮候选 |
 | FM-13 | WAQI demo 返回上海站 | 仲裁用 aqicn.org 页面通道 |
+| FM-14 | 8 个实体显示 unavailable 且无说明 | 2026.11.3-1 改为 unknown + note |
 | 端点覆盖 | 5 端点中 4 个已用；get_ranking/config/change_lang 未用 | 无缺口；get_ranking 仅在 FM 清单外需求出现时评估 |
