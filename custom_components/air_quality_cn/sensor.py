@@ -54,6 +54,12 @@ def _const(name: str, fallback: str):
     return getattr(ha_const, name, fallback)
 
 
+def _has_readings(data):
+    """Time and capability metadata alone do not count as a fetched value."""
+    metadata = {"update_time", "nearby_update_time", "readings_kinds"}
+    return any(value not in (None, "", [], {}) for key, value in data.items() if key not in metadata)
+
+
 # 单位常量（等值回退，避免 HA 移除枚举时 import 失败导致整个平台无法加载）
 UGM3 = _unit("UnitOfDensity", "MICROGRAMS_PER_CUBIC_METER", "μg/m³")
 CELSIUS = _unit("UnitOfTemperature", "CELSIUS", "°C")
@@ -216,18 +222,18 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         )
 
     async def _nearby_data(self, session):
-        """附近数据（天气/预报/首要污染物/天气预报），带 TTL 缓存。"""
+        """返回附近数据和是否来自缓存。"""
         ts, cached = self._nearby_cache
         now = time.monotonic()
-        if now - ts < NEARBY_CACHE_TTL and not self._force_skip_cache:
-            return cached
+        if cached and 0 <= now - ts < NEARBY_CACHE_TTL and not self._force_skip_cache:
+            return cached, True
         payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
         parsed = api.parse_nearby(payload, place_id=self.place_id)
         wf = api.parse_weather_forecast(payload)
         parsed["wf_hourly"] = wf.get("hourly") or []
         parsed["wf_daily"] = wf.get("daily") or []
         self._nearby_cache = (now, parsed)
-        return parsed
+        return parsed, False
 
     async def async_request_refresh_forced(self):
         """手动刷新：跳过 nearby 缓存，立即拉取全部数据。"""
@@ -240,6 +246,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         session = async_get_clientsession(self.hass)
         data = {}
+        fresh_values = False
 
         # ── 主路径：JSON 接口 ────────────────────────────────
         if self._lat is None or self._lon is None:
@@ -248,16 +255,19 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         if self._lat is not None and self._lon is not None:
             # 附近数据（天气/首要污染物/预报）：与读数相互独立，失败不阻塞读数
             try:
-                nearby = await self._nearby_data(session)
+                nearby, from_cache = await self._nearby_data(session)
                 if nearby:
                     data.update(nearby)
+                    fresh_values = not from_cache and _has_readings(nearby)
             except api.ApiError as e:
                 _LOGGER.info("附近数据接口失败（下次刷新重试）: %s", e)
 
             try:
                 row = await api.fetch_map_row(session, self._lat, self._lon, self.standard, self.place_id)
                 if row is not None:
-                    data.update(api.parse_place_row(row))
+                    readings = api.parse_place_row(row)
+                    data.update(readings)
+                    fresh_values = fresh_values or _has_readings(readings)
             except api.ApiError as e:
                 _LOGGER.warning("地图数据接口失败: %s", e)
 
@@ -270,20 +280,25 @@ class AirQualityCoordinator(DataUpdateCoordinator):
                 except api.ApiError as e:
                     _LOGGER.debug("历史数据接口失败: %s", e)
 
-        # ── 回退路径：HTML 页面解析 ──────────────────────────
-        # 仅用于补齐 AQI/污染物读数；已有字段（天气/预报等）不被覆盖
-        if data.get("aqi") is None:
-            _LOGGER.info("JSON 读数缺失，回退 HTML 页面解析补齐: %s", self.place)
+        # 当已有正确的 JSON 读数时，匹配的页面也可补充缺失的采样时间。
+        missing_aqi = data.get("aqi") is None
+        missing_time = data.get("update_time") is None and data.get("nearby_update_time") is None
+        if missing_aqi or missing_time:
             try:
-                html = await api.fetch_html(session, self.place, self.standard)
+                html = await api.fetch_html(session, self.place, self.standard, timeout=30 if missing_aqi else 10)
                 fallback = api.parse_html(html)
-            except api.SkeletonPageError as e:
-                raise UpdateFailed(str(e)) from e
-            except api.ApiError as e:
-                raise UpdateFailed(str(e)) from e
-            for key, value in fallback.items():
-                if data.get(key) is None:
-                    data[key] = value
+            except (api.SkeletonPageError, api.ApiError) as e:
+                if missing_aqi:
+                    raise UpdateFailed(str(e)) from e
+                _LOGGER.debug("回退页面时间不可用，保留 JSON 读数: %s", e)
+            else:
+                if missing_aqi:
+                    fresh_values = fresh_values or _has_readings(fallback)
+                    for key, value in fallback.items():
+                        if data.get(key) is None:
+                            data[key] = value
+                elif fallback.get("aqi") == data["aqi"] and fallback.get("update_time") is not None:
+                    data["update_time"] = fallback["update_time"]
 
         # Only fall back to a cached station time once the direct sources have been tried.
         nearby_time = data.pop("nearby_update_time", None)
@@ -292,10 +307,8 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         if not data:
             raise UpdateFailed("未获取到任何数据")
 
-        # 时间戳、字段清单和空集合不能证明本次得到了读数或天气。
-        metadata = {"update_time", "readings_kinds"}
-        if not any(value not in (None, "", [], {}) for key, value in data.items() if key not in metadata):
-            raise UpdateFailed("所有解析字段均为空：上游本次未提供有效读数或天气")
+        if not fresh_values:
+            raise UpdateFailed("所有解析字段均为空：本轮未获取有效读数或天气，缓存不计")
 
         # 数据更新成功后再考虑持久化坐标（推迟到第 2 次刷新，避开 setup 期 reload）
         await self._maybe_persist_coords()

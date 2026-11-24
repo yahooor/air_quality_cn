@@ -21,10 +21,14 @@ class FakeCoordinator:
 
 
 class FakeResponse:
-    def __init__(self, status=200, body=""):
+    def __init__(self, status=200, body="", payload=None):
         self.status = status
         self.body = body
+        self.payload = payload
         self.text_read = False
+
+    async def json(self, **kwargs):
+        return self.payload
 
     async def text(self):
         self.text_read = True
@@ -32,14 +36,21 @@ class FakeResponse:
 
 
 class FakeSession:
-    def __init__(self, html_response):
+    def __init__(self, html_response, map_aqi=None):
         self.html_response = html_response
+        self.map_aqi = map_aqi
         self.calls = []
 
     @asynccontextmanager
     async def post(self, url, **kwargs):
         self.calls.append(("POST", url))
-        yield FakeResponse(status=502)
+        if self.map_aqi is not None and url.endswith("data/get_map_data"):
+            row = {"place": {"place_id": "site"}, "latest": {"readings": [{"kind": "aqi", "value": self.map_aqi}]}}
+            yield FakeResponse(payload={"success": True, "data": {"map": [row]}})
+        elif url.endswith("data/get_history_data"):
+            yield FakeResponse(payload={"success": True, "data": {"history": [{"data": [{"time": "2040-04-05 12:00", "value": None}]}]}})
+        else:
+            yield FakeResponse(status=502)
 
     @asynccontextmanager
     async def get(self, url, **kwargs):
@@ -74,12 +85,15 @@ def load_coordinator(monkeypatch):
     bind(package, __path__=[str(root)])  # do not execute integration-level service registration
     sensor = import_module(f"{package}.sensor")
 
-    def make(html_response, nearby=None):
-        session = FakeSession(html_response)
+    def make(html_response, nearby=None, *, map_aqi=None, cached=False):
+        session = FakeSession(html_response, map_aqi=map_aqi)
         hass = SimpleNamespace(data={}, session=session)
         entry = SimpleNamespace(entry_id="test-entry", data={"lat": 30.0, "lon": 100.0})
         coordinator = sensor.AirQualityCoordinator(hass, entry, "test/region/site", "site", "Test", "aqi_cn", 30)
-        coordinator._nearby_data = AsyncMock(return_value=nearby)
+        if cached:
+            coordinator._nearby_cache = (sensor.time.monotonic(), nearby)
+        else:
+            coordinator._nearby_data = AsyncMock(return_value=(nearby, False))
         return coordinator, session
 
     try:
@@ -153,3 +167,39 @@ def test_fallback_without_its_timestamp_can_use_the_same_station_time(load_coord
     data = asyncio.run(coordinator._async_update_data())
     assert data["update_time"] == cached
     assert "nearby_update_time" not in data
+
+
+@pytest.mark.parametrize("html_aqi, expect_time", [(0, True), (31, False)])
+def test_json_aqi_without_history_can_use_a_matching_html_timestamp(load_coordinator, html_aqi, expect_time):
+    response = FakeResponse(body=(f"<p>AQI (中国标准) {html_aqi}</p>"
+                                  "<div class='update-time'>2040-04-05T13:00:00</div>"))
+    coordinator, session = load_coordinator(response, map_aqi=0)
+    result = asyncio.run(coordinator._async_update_data())
+    assert [verb for verb, _ in session.calls] == ["POST", "POST", "GET"]
+    assert result["aqi"] == 0
+    expected = datetime(2040, 4, 5, 13, tzinfo=timezone.utc) if expect_time else None
+    assert result.get("update_time") == expected
+
+
+def test_optional_html_timeout_keeps_json_aqi(load_coordinator):
+    coordinator, session = load_coordinator(TimeoutError("offline"), map_aqi=35)
+    data = asyncio.run(coordinator._async_update_data())
+    assert [verb for verb, _ in session.calls] == ["POST", "POST", "GET"]
+    assert data["aqi"] == 35 and data.get("update_time") is None
+
+
+def test_cached_weather_alone_does_not_make_the_current_poll_successful(load_coordinator):
+    response = FakeResponse(body="<div class='update-time'>2040-04-05T13:00:00</div>")
+    coordinator, session = load_coordinator(response, nearby={"temperature": 22}, cached=True)
+    with pytest.raises(FakeUpdateFailed, match="所有解析字段均为空"):
+        asyncio.run(coordinator._async_update_data())
+    assert [verb for verb, _ in session.calls] == ["POST", "GET"]
+    assert coordinator._update_count == 0
+
+
+def test_no_extra_html_fetch_if_same_station_timestamp_is_present(load_coordinator):
+    stamp = datetime(2040, 4, 5, 10, tzinfo=timezone.utc)
+    coordinator, session = load_coordinator(FakeResponse(), nearby={"nearby_update_time": stamp}, map_aqi=35)
+    data = asyncio.run(coordinator._async_update_data())
+    assert [verb for verb, _ in session.calls] == ["POST", "POST"]
+    assert data["update_time"] == stamp
