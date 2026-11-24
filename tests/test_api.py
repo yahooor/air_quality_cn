@@ -177,6 +177,17 @@ def test_parse_nearby_beijing():
     assert forecast[3]["level"] == "优"
 
 
+@pytest.mark.parametrize("place_id, hour", [("target", 13), ("not-returned", None)])
+def test_nearby_timestamp_only_represents_the_configured_station(place_id, hour):
+    payload = {"data": {"nearby": [
+        {"place": {"place_id": "neighbor"}, "latest": {"update_time": "2040-04-05 10:00"}},
+        {"place": {"place_id": "target"}, "latest": {"update_time": "2040-04-05 13:00"}},
+    ]}}
+    data = api.parse_nearby(payload, place_id=place_id)
+    expected = datetime(2040, 4, 5, hour, tzinfo=timezone.utc) if hour is not None else None
+    assert data.get("nearby_update_time") == expected
+
+
 # ─── HTML 回退解析 ───────────────────────────────────────────────
 
 def test_parse_html_beijing():

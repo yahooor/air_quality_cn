@@ -535,8 +535,8 @@ def parse_weather_forecast(payload):
     return out
 
 
-def parse_nearby(payload):
-    """附近数据响应 → 天气字段、首要污染物、5 天预报、最近地点更新时间。"""
+def parse_nearby(payload, *, place_id=None):
+    """沿用最近站的天气及预报；指定地点时，时间戳仅取对应站。"""
     data = {}
     nearby = (payload.get("data") or {}).get("nearby") or []
     if not nearby:
@@ -547,8 +547,13 @@ def parse_nearby(payload):
         if b.get("type") == "MAIN_POLLUTANT" and b.get("text2"):
             data["primary_pollutant"] = b["text2"]
             break
-    if latest.get("update_time"):
-        data["nearby_update_time"] = parse_site_time(latest["update_time"])
+    time_row = nearby[0] if place_id is None else next(
+        (row for row in nearby if ((row.get("place") or {}).get("place_id") or "").strip("/") == place_id.strip("/")),
+        None,
+    )
+    station_time = parse_site_time(((time_row or {}).get("latest") or {}).get("update_time"))
+    if station_time is not None:
+        data["nearby_update_time"] = station_time
     forecast = []
     for series in nearby[0].get("forecast") or []:
         for p in series.get("data") or []:
@@ -627,7 +632,11 @@ async def fetch_html(session, place, standard, timeout=30):
         async with session.get(
             url, timeout=aiohttp.ClientTimeout(total=timeout)
         ) as resp:
+            if resp.status != 200:
+                raise ApiError(f"页面请求失败: HTTP {resp.status}")
             html = await resp.text()
+    except ApiError:
+        raise
     except Exception as e:
         raise ApiError(f"页面请求失败: {e}") from e
     return html

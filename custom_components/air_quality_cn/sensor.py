@@ -222,7 +222,7 @@ class AirQualityCoordinator(DataUpdateCoordinator):
         if now - ts < NEARBY_CACHE_TTL and not self._force_skip_cache:
             return cached
         payload = await api.fetch_nearby(session, self._lat, self._lon, self.standard)
-        parsed = api.parse_nearby(payload)
+        parsed = api.parse_nearby(payload, place_id=self.place_id)
         wf = api.parse_weather_forecast(payload)
         parsed["wf_hourly"] = wf.get("hourly") or []
         parsed["wf_daily"] = wf.get("daily") or []
@@ -270,9 +270,6 @@ class AirQualityCoordinator(DataUpdateCoordinator):
                 except api.ApiError as e:
                     _LOGGER.debug("历史数据接口失败: %s", e)
 
-            if data.get("update_time") is None and data.get("nearby_update_time"):
-                data["update_time"] = data.pop("nearby_update_time")
-
         # ── 回退路径：HTML 页面解析 ──────────────────────────
         # 仅用于补齐 AQI/污染物读数；已有字段（天气/预报等）不被覆盖
         if data.get("aqi") is None:
@@ -285,14 +282,20 @@ class AirQualityCoordinator(DataUpdateCoordinator):
             except api.ApiError as e:
                 raise UpdateFailed(str(e)) from e
             for key, value in fallback.items():
-                data.setdefault(key, value)
+                if data.get(key) is None:
+                    data[key] = value
 
+        # Only fall back to a cached station time once the direct sources have been tried.
+        nearby_time = data.pop("nearby_update_time", None)
+        if data.get("update_time") is None and nearby_time is not None:
+            data["update_time"] = nearby_time
         if not data:
             raise UpdateFailed("未获取到任何数据")
 
-        # 健康警告：除 update_time 外全为空，多半是页面/接口结构变化
-        if all(v is None for k, v in data.items() if k != "update_time"):
-            _LOGGER.warning("所有解析字段均为空，请检查站点结构是否变化。place: %s", self.place)
+        # 时间戳、字段清单和空集合不能证明本次得到了读数或天气。
+        metadata = {"update_time", "readings_kinds"}
+        if not any(value not in (None, "", [], {}) for key, value in data.items() if key not in metadata):
+            raise UpdateFailed("所有解析字段均为空：上游本次未提供有效读数或天气")
 
         # 数据更新成功后再考虑持久化坐标（推迟到第 2 次刷新，避开 setup 期 reload）
         await self._maybe_persist_coords()
